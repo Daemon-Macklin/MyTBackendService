@@ -1,0 +1,8 @@
+---
+- hosts: vms
+  become: yes
+  roles:
+  - role: dmacklin.machineSetup
+  - role: dmacklin.dockerAnsible
+  - role: dmacklin.mytInstall
+...

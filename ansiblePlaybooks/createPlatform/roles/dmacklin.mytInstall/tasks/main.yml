@@ -1,0 +1,59 @@
+---
+
+- name: Remove MyT MyTApplication
+  file:
+    path: /opt/MyTApplication
+    state: absent
+
+- name: Pull MyT git repo
+  git:
+    repo: https://github.com/Daemon-Macklin/MyTPlatformDataProcessingContainer
+    dest: /opt/MyTApplication
+
+- name: Configure data processing script
+  copy:
+    src: ../templates/dataProcessing.py
+    dest: /opt/MyTApplication/dataProcessing.py
+
+- name: Set Ownership of application to ubuntu
+  file:
+    path: /opt/MyTApplication
+    state: directory
+    recurse: yes
+    owner: ubuntu
+    group: ubuntu
+
+- name: Build Data Processing Docker image from Dockerfile
+  docker_image:
+    name: myt-processing
+    build:
+      path: /opt/MyTApplication
+    state: present
+    source: build
+
+- name: Create and start services
+  docker_compose:
+    project_src: /opt/MyTApplication
+  register: output
+
+- name: Install docker-py
+  pip:
+    name: influxdb
+
+- name: Upload influxdb setup script
+  copy:
+    src: ../templates/influxsetup.py
+    dest: /opt/MyTApplication/influxsetup.py
+
+- name: Make influx setup script executable
+  file:
+    path: /opt/MyTApplication/influxsetup.py
+    mode: a+x
+
+- name: Run the influx setup script
+  command: /opt/MyTApplication/influxsetup.py
+
+- name: Remove influxsetup script
+  file:
+    path: /opt/MyTApplication/influxsetup.py
+    state: absent

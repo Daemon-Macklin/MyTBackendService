@@ -1,0 +1,9 @@
+pychache__/*
+*.pyc
+*.tfstate
+*.tfstate.backup
+variables.tf
+.terraform/
+*.retry
+
+
