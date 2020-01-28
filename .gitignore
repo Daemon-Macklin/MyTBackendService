@@ -2,7 +2,9 @@ pychache__/*
 *.pyc
 *.tfstate
 *.tfstate.backup
+*.tfstate.lock.info
 variables.tf
+platforms/*
 .terraform/
 *.retry
 config.py

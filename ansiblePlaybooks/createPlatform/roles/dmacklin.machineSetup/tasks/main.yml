@@ -10,3 +10,21 @@
   apt: name={{item}} state=present
   with_items:
     - python3-pip
+
+- name: Create a ext4 filesystem on attached volume
+  filesystem:
+    fstype: ext4
+    dev: /dev/nvme1n1
+
+- name: Create a directory to mount the volume
+  file:
+    path: /var/lib/mytDatabase
+    state: directory
+    mode: '0755'
+
+- name: Mount and bind a volume
+  mount:
+    path: /var/lib/mytDatabase
+    src: /dev/nvme1n1
+    state: mounted
+    fstype: ext4

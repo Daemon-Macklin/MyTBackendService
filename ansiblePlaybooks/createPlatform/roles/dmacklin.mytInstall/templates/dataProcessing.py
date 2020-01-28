@@ -11,7 +11,7 @@ import loggerHelper
 # dict data - Contains uploaded data
 def main(data):
     # Perform data processing here
-    loggerHelper.getLogger("Processing")
+    loggerHelper.getLogger().info("Processing")
 
     # All data in the dict data will be saved to the database
     return data

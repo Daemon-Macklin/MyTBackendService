@@ -55,7 +55,7 @@ resource "aws_security_group" "MyT-SG" {
     from_port = 22
     protocol = "tcp"
     to_port = 22
-    cidr_blocks = ["89.101.235.182/32"]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
     egress {
@@ -85,13 +85,29 @@ resource "aws_instance" "web" {
   subnet_id = aws_subnet.my_subnet.id
   depends_on = ["aws_internet_gateway.gw"]
 
-  ebs_block_device {
-    device_name = "/dev/xvdb"
-    volume_type = "gp2"
-    volume_size = 10
-  }
-
   tags = {
     Name = "MyTPlatform"
   }
+}
+
+resource "aws_ebs_volume" "db-volume" {
+  availability_zone = "eu-west-1a"
+  size              = 10
+  tags = {
+    Name = "MyT-DB storage"
+  }
+}
+
+resource "aws_volume_attachment" "ebs_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.db-volume.id
+  instance_id = aws_instance.web.id
+}
+
+output "instance_ip_address" {
+  value = aws_instance.web.public_ip
+}
+
+output "volume_device_name" {
+  value = aws_volume_attachment.ebs_att.device_name
 }
