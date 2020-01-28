@@ -5,5 +5,5 @@ pychache__/*
 variables.tf
 .terraform/
 *.retry
-
-
+config.py
+.venv/
