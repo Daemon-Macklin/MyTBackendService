@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 import response as Response
+import terraform as tf
 from app.config import URL_PREFIX
 from shutil import copyfile
 import os
@@ -48,5 +49,10 @@ def createPlatform():
 
     for file in requiredFiles:
         copyfile(tfPath + "/" + file, platformPath + "/" + file)
+
+    output, resultCode =tf.create(platformPath)
+
+    print(output)
+    print(resultCode)
 
     return Response.make_success_resp("Whoops...This function is not finished")
