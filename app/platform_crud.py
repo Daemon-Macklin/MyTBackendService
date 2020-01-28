@@ -50,9 +50,15 @@ def createPlatform():
     for file in requiredFiles:
         copyfile(tfPath + "/" + file, platformPath + "/" + file)
 
-    output, resultCode =tf.create(platformPath)
+    initResultCode = tf.init(platformPath)
 
+    output, createResultCode = tf.create(platformPath)
+
+    if createResultCode != 0:
+        # Add destroy function here
+        return Response.make_error_resp(msg="Error Creating Infrastructure")
+    
     print(output)
-    print(resultCode)
+    print(createResultCode)
 
     return Response.make_success_resp("Whoops...This function is not finished")

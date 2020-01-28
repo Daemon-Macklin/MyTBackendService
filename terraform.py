@@ -1,8 +1,10 @@
 from python_terraform import Terraform
-import subprocess
-import os
-import time
 
+
+def init(pathtoPlatform):
+
+    terra = Terraform(pathtoPlatform)
+    return_code = terra.init()
 
 def create(pathToPlatform):
 
