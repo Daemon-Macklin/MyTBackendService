@@ -67,7 +67,8 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
-    output, error = ab.configServer(output["instance_ip_address"]["value"])
+    ansiblePath = "ansiblePlaybooks/createPlatform"
+    output, error = ab.configServer(output["instance_ip_address"]["value"], ansiblePath)
 
     print(output)
     print(error)
