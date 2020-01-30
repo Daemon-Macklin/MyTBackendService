@@ -1,14 +1,18 @@
 import subprocess
+from collections import namedtuple
+
+import ansible as ab
 
 
 def configServer(floatingIp, ansiblePath):
-    f = open(ansiblePath + "/inventory", "w+")
+    # playbook_path = ansiblePath + "/installService.yml"
+    inventory_path = ansiblePath + "/inventory"
+
+    f = open(inventory_path, "w+")
     f.write("[vms]\n" + floatingIp + "\n")
     f.close()
+
     executeCommand = "ansible-playbook -i inventory installService.yml -e 'ansible_python_interpreter=/usr/bin/python3'"
     process = subprocess.Popen(executeCommand.split(), stdout=subprocess.PIPE, cwd=ansiblePath)
     output, error = process.communicate()
     return output, error
-
-# Follow this tutorial
-# https://www.edureka.co/community/35975/is-it-possible-to-run-an-ansible-playbook-in-python-script
