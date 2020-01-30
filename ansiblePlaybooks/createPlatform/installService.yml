@@ -1,5 +1,8 @@
 ---
 - hosts: vms
+  vars:
+    cloudService: 'aws'
+    externalVol: '/dev/nvme1n1'
   become: yes
   roles:
   - role: dmacklin.machineSetup

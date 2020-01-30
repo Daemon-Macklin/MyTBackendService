@@ -18,7 +18,7 @@ def createPlatform():
     data = request.json
     platformName = None
     cloudService = None
-
+    externalVolume = None
     print(data)
     if 'platformName' in data:
         platformName = data["platformName"]
@@ -41,11 +41,19 @@ def createPlatform():
         print(e)
         return Response.make_error_resp(msg="Error Creating Platform Directory", code=400)
 
+    validPlatforms = ["aws", "openstack"]
+    if cloudService not in validPlatforms:
+        return Response.make_error_resp(msg="invalid cloudService", code=400)
     tfPath = ""
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
+        externalVolume = "/dev/nvme1n1"
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
+        externalVolume = "/dev/vdb"
+
+    ansiblePath = "ansiblePlaybooks/createPlatform"
+    updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath)
 
     requiredFiles = ["deploy.tf", "provider.tf", "variables.tf"]
 
@@ -67,13 +75,12 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
-    ansiblePath = "ansiblePlaybooks/createPlatform"
     output, error = ab.configServer(output["instance_ip_address"]["value"], ansiblePath)
 
     print(output)
     print(error)
 
-    return Response.make_success_resp("Whoops...This function is not finished")
+    return Response.make_success_resp("Platform Created")
 
 
 # ==============Helper Functions=============#
@@ -85,13 +92,26 @@ def serverCheck(floating_ip):
         response = os.system("ping -c 1 " + floating_ip)
 
         if response == 0:
-            print("Host is up")
             time.sleep(10)
             isUp = True
             break
         else:
-            print("Host is down - Waiting 10 seconds")
             time.sleep(10)
             counter += 1
 
     return isUp
+
+
+def updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath):
+    # with is like your try .. finally block in this case
+    with open(ansiblePath + "/installService.yml", 'r') as file:
+        # read a list of lines into data
+        data = file.readlines()
+
+    # now change the 2nd line, note that you have to add a newline
+    data[3] = "    cloudService: '" + cloudService + "'\n"
+    data[4] = "    externalVol: '" + externalVolume + "'\n"
+
+    # and write everything back
+    with open(ansiblePath + "/installService.yml", 'w') as file:
+        file.writelines(data)

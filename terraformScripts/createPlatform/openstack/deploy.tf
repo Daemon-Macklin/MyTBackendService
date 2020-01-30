@@ -31,6 +31,6 @@ resource "openstack_compute_volume_attach_v2" "va_1" {
   volume_id   = openstack_blockstorage_volume_v2.DMacklinMyTDemoVolume.id
 }
 
-output "instance_ip_addr" {
+output "instance_ip_address" {
   value = openstack_networking_floatingip_v2.myip.address
 }

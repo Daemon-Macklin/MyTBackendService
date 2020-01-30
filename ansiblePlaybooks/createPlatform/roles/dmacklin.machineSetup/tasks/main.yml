@@ -14,7 +14,7 @@
 - name: Create a ext4 filesystem on attached volume
   filesystem:
     fstype: ext4
-    dev: /dev/nvme1n1
+    dev: "{{ externalVol }}"
 
 - name: Create a directory to mount the volume
   file:
@@ -25,6 +25,6 @@
 - name: Mount and bind a volume
   mount:
     path: /var/lib/mytDatabase
-    src: /dev/nvme1n1
+    src: "{{ externalVol }}"
     state: mounted
     fstype: ext4
