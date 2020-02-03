@@ -82,7 +82,7 @@ resource "aws_security_group" "MyT-SG" {
 
 resource "aws_key_pair" "MyT-Key" {
   key_name   = "myt-key"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC1czloJeXHAt65uC2n1eWiuzgREygy/C8nGIRYvStElsOa0Hunjw4HMCPz4BEdkO9p2nEkO16QmZbOks6P1eC3LtdbQgBYiy4+s+k/Sg4NlXosN1eI7gTM9CP88iDSVh+gZPracJYfq8EB4eHZBZRQD/EZkuVohrq8TxDuJppNp2xLT7wqkEviooRoxz270cJLQ1ozO89GX437Bkr1+VbzuL9p8l+Bay2FXXStCrvMLq9a8A3bC7oZ6f3zyHyzmFSY7U9yuD+YdMBXhQ0TXNGflB/d2RfJWAfDwgiejuHBJ0M63+kQW7IsoKVrhV9d0JOpZDM5Caek+8ngh/BBn7V/ dmacklin@dmacklin-KPL-W0X"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgCHDE7WffkghdAIeoCazVgIctTdsOM+yKHCgek/IbUUveWGPlPgMsxLGGvWrXe/nLDsNVEXvIPZNvsKFLtXnP24DBXws8zi1XgJCzsd4CxFgoRr0DVnHlvKCatezKiqo1FB35Bn5fxy7414w96rrCsesbXbivPu3dd9O/vAC4LxjXoNE4wChWDfxMPCUVhbLtskvTQP683UdGlEhLdDJbQtrfgAeaWFg0nWs6xxsxkFEbTIlrP6562XqBxg3AbCeEALzGG7W3s0LS2+5QO6QC6WUZQsolrh85ktnzs2CYKPThk8Bv8qoUqWQ1VEkuKn61TPAWB3lnfuk6ymzNWD+T dmacklin@DESKTOP-KNU45C3"
 }
 
 resource "aws_instance" "web" {
@@ -91,7 +91,7 @@ resource "aws_instance" "web" {
   key_name = aws_key_pair.MyT-Key.id
   security_groups = [aws_security_group.MyT-SG.id]
   subnet_id = aws_subnet.my_subnet.id
-  depends_on = ["aws_internet_gateway.gw"]
+  depends_on = [aws_internet_gateway.gw]
 
   tags = {
     Name = "MyTPlatform"

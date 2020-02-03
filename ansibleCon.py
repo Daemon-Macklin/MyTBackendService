@@ -1,7 +1,4 @@
 import subprocess
-from collections import namedtuple
-
-import ansible as ab
 
 
 def configServer(floatingIp, ansiblePath):
