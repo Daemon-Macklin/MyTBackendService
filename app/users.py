@@ -33,7 +33,32 @@ def createUser():
 
     try:
         newUser.save()
-    except Exception as e:
+    except:
         return Response.make_error_resp(msg="Error creating user", code=400)
     finally:
         return Response.make_success_resp("User Created")
+
+
+@users.route('users/login', methods=['Get'])
+def login():
+    data = request.json
+
+    if 'email' in data:
+        email = data["email"]
+    else:
+        return Response.make_error_resp(msg="Email is required", code=400)
+
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    try:
+        user = User.get(User.email == email)
+    except:
+        return Response.make_error_resp(msg="No User with that email", code=400)
+    finally:
+        if user.password == password:
+            return Response.make_success_resp("User Authenticated")
+        else:
+            return Response.make_error_resp(msg="Password Incorrect", code=400)
