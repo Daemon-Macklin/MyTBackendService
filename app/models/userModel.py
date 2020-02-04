@@ -8,7 +8,7 @@ class BaseModel(Model):
         database = db
 
 class User(BaseModel):
-    username = CharField(unique=True)
+    userName = CharField(unique=True)
     password = CharField()
     email = CharField(unique=True)
     uid = UUIDField(unique=True, primary_key=True, default=str(uuid.uuid4()))
