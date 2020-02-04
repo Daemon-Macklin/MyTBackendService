@@ -2,3 +2,5 @@ flask
 python_terraform
 ansible
 peewee
+Flask-JWT
+passlib

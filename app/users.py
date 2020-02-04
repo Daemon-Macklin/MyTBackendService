@@ -1,4 +1,6 @@
 from flask import Blueprint, request
+from flask_jwt import JWT
+from passlib.hash import pbkdf2_sha256
 import response as Response
 from app.config import URL_PREFIX
 from .models.userModel import *
@@ -22,7 +24,7 @@ def createUser():
         return Response.make_error_resp(msg="Email is required", code=400)
 
     if 'password' in data:
-        password = data["password"]
+        password = pbkdf2_sha256.hash(data["password"])
     else:
         return Response.make_error_resp(msg="Password is required", code=400)
 
@@ -58,7 +60,15 @@ def login():
     except:
         return Response.make_error_resp(msg="No User with that email", code=400)
     finally:
-        if user.password == password:
-            return Response.make_success_resp("User Authenticated")
+        print(user.password)
+        print(password)
+        if pbkdf2_sha256.verify(password, user.password):
+            res = {
+                'success': True,
+                'username': user.userName,
+                'email': user.email,
+                'uid': user.uid,
+            }
+            return Response.make_json_response(res)
         else:
             return Response.make_error_resp(msg="Password Incorrect", code=400)
