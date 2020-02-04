@@ -10,10 +10,9 @@ class BaseModel(Model):
         database = db
 
 
-class SpaceAWS(BaseModel):
-    private_key = TextField()
-    key_pair_id = CharField()
-    security_group_id = CharField()
-    gateway_id = CharField()
+class AWSCreds(BaseModel):
+    accessKey = CharField(max_length=20)
+    secretKey = CharField(max_length=40)
     uid = ForeignKeyField(model=User)
     id = UUIDField(unique=True, primary_key=True, default=str(uuid.uuid4()))
+

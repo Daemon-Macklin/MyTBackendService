@@ -4,6 +4,7 @@ from passlib.hash import pbkdf2_sha256
 import response as Response
 from app.config import URL_PREFIX
 from .models.userModel import *
+from .models.spaceModel import *
 
 users = Blueprint('users', __name__, url_prefix=URL_PREFIX)
 
@@ -29,7 +30,7 @@ def createUser():
         return Response.make_error_resp(msg="Password is required", code=400)
 
     db.connect()
-    db.create_tables([User])
+    db.create_tables([User, SpaceAWS])
 
     newUser = User.create(userName=userName, email=email, password=password)
 
