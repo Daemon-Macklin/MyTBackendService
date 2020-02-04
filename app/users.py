@@ -5,6 +5,7 @@ import response as Response
 from app.config import URL_PREFIX
 from .models.userModel import *
 from .models.spaceModel import *
+from .models.credentialsModel import *
 
 users = Blueprint('users', __name__, url_prefix=URL_PREFIX)
 
@@ -29,17 +30,24 @@ def createUser():
     else:
         return Response.make_error_resp(msg="Password is required", code=400)
 
-    db.connect()
-    db.create_tables([User, SpaceAWS])
-
-    newUser = User.create(userName=userName, email=email, password=password)
-
+    user = None
     try:
+        db.connect()
+        db.create_tables([User, SpaceAWS, AWSCreds, OpenstackCreds])
+        newUser = User.create(userName=userName, email=email, password=password)
         newUser.save()
+        user = User.get(User.email == email)
     except:
         return Response.make_error_resp(msg="Error creating user", code=400)
     finally:
-        return Response.make_success_resp("User Created")
+        if user is None:
+            return Response.make_error_resp("Error Creating user")
+        res = {
+            'userName': user.userName,
+            'email': user.email,
+            'uid': user.uid
+        }
+        return Response.make_json_response(res)
 
 
 @users.route('users/login', methods=['Get'])

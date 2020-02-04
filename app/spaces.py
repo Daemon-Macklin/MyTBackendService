@@ -18,7 +18,6 @@ Private Key
 """
 @spaces.route('spaces/create', methods=["Post"])
 def createSpace():
-
     data = request.json
 
-    if
+    return "Whoops this function is not complete"
