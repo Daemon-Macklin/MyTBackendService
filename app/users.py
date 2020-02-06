@@ -34,7 +34,7 @@ def createUser():
         passSalt = os.urandom(16)
         password = pbkdf2_sha256.hash(data["password"], salt=passSalt)
         keySalt = os.urandom(16)
-        resKey = encryption.generateResKey(password, keySalt)
+        resKey = encryption.generateResKey(data["password"], keySalt)
     else:
         return Response.make_error_resp(msg="Password is required", code=400)
 
@@ -51,7 +51,7 @@ def createUser():
         return Response.make_error_resp(msg="Error creating user")
 
     user = User.get(User.email == email)
-    print(user)
+
     if user is None:
         return Response.make_error_resp("Error Finding user")
     res = {
@@ -79,16 +79,19 @@ def login():
     try:
         user = User.get(User.email == email)
     except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    if user is None:
         return Response.make_error_resp(msg="No User with that email", code=400)
-    finally:
-        if pbkdf2_sha256.verify(password, user.password):
-            res = {
-                'success': True,
-                'username': user.userName,
-                'email': user.email,
-                'uid': user.uid,
-            }
-            return Response.make_json_response(res)
-        else:
-            return Response.make_error_resp(msg="Password Incorrect", code=400)
+
+    if pbkdf2_sha256.verify(password, user.password):
+        res = {
+            'success': True,
+            'username': user.userName,
+            'email': user.email,
+            'uid': user.uid,
+        }
+        return Response.make_json_response(res)
+    else:
+        return Response.make_error_resp(msg="Password Incorrect", code=400)
 

@@ -15,7 +15,7 @@ class AWSCreds(BaseModel):
     accessKey = CharField(max_length=20)
     secretKey = CharField(max_length=40)
     uid = ForeignKeyField(model=User)
-    id = UUIDField(unique=True, primary_key=True, default=str(uuid.uuid4()))
+    id = UUIDField(unique=True, primary_key=True)
 
 
 class OpenstackCreds(BaseModel):

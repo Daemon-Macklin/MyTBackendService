@@ -8,38 +8,32 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 def generateResKey(password, salt):
 
     kdf = passwordEncryptionSettings(salt)
-
     passwordKey = base64.urlsafe_b64encode(kdf.derive(str.encode(password)))
     masterKey = Fernet.generate_key()
-
     f = Fernet(passwordKey)
     resKey = f.encrypt(masterKey)
-
     return resKey
 
 
 def decryptMasterKey(password, salt, resKey):
 
     kdf = passwordEncryptionSettings(salt)
-
     passwordKey = base64.urlsafe_b64encode(kdf.derive(str.encode(password)))
-
     f = Fernet(passwordKey)
     masterKey = f.decrypt(resKey)
-
     return masterKey
 
 def encryptString(password, salt, resKey, string):
 
     masterKey = decryptMasterKey(password, salt, resKey)
     f = Fernet(masterKey)
-    return f.encrypt(string)
+    return f.encrypt(str.encode(string))
 
 def decryptString(password, salt, resKey, string):
 
     masterKey = decryptMasterKey(password, salt, resKey)
     f = Fernet(masterKey)
-    return f.decrypt(string)
+    return str(f.decrypt(string), 'utf-8')
 
 
 def passwordEncryptionSettings(salt):
