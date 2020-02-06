@@ -10,6 +10,8 @@ class BaseModel(Model):
 class User(BaseModel):
     userName = CharField(unique=True)
     password = CharField()
+    passSalt = BlobField()
     email = CharField(unique=True)
-    lockKey = TextField(null=True)
-    uid = UUIDField(unique=True, primary_key=True, default=str(uuid.uuid4()))
+    resKey = BlobField()
+    keySalt = BlobField()
+    uid = UUIDField(unique=True, primary_key=True)

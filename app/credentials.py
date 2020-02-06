@@ -12,6 +12,7 @@ Takes in:
 name
 access key
 secret key
+password
 User id
 """
 
@@ -25,6 +26,16 @@ def createCredentials():
     else:
         return Response.make_error_resp("Name is required ", code=400)
 
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp("User id is Required")
+
     if 'accessKey' in data:
         accessKey = data['accessKey']
     else:
@@ -35,26 +46,17 @@ def createCredentials():
     else:
         return Response.make_error_resp("Secret Key is Required")
 
-    if 'uid' in data:
-        uid = data['uid']
-    else:
-        return Response.make_error_resp("User id is Required")
-
-    creds = None
-
     try:
-        db.connect()
         newCredentials = AWSCreds(name=name, accessKey=accessKey, secretKey=secretKey, uid=uid)
-        newCredentials.save(force_insert=True)
-        creds = AWSCreds.get(AWSCreds.id == newCredentials.id)
     except Exception as e:
         print(e)
         return Response.make_error_resp("Error Creating Creds")
-    finally:
-        if creds is None:
-            return Response.make_error_resp("Error Creating Creds")
-        res = {
-            'name': creds.name,
-            'id': creds.id
-        }
-        return Response.make_json_response(res)
+
+    creds = AWSCreds.get(AWSCreds.id == newCredentials.id)
+    if creds is None:
+        return Response.make_error_resp("Error Creating Creds")
+    res = {
+        'name': creds.name,
+        'id': creds.id
+    }
+    return Response.make_json_response(res)

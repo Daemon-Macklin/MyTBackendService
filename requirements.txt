@@ -4,3 +4,4 @@ ansible
 peewee
 Flask-JWT
 passlib
+cryptography
