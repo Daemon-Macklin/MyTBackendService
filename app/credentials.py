@@ -52,6 +52,7 @@ def createCredentials():
 
         accessKey = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=accessKey)
         secretKey = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=secretKey)
+
         try:
             newCredentials = AWSCreds.create(name=name, accessKey=accessKey, secretKey=secretKey, uid=uid,
                                              id=str(uuid.uuid4()))

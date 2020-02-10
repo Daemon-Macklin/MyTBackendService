@@ -14,4 +14,6 @@ class User(BaseModel):
     email = CharField(unique=True)
     resKey = BlobField()
     keySalt = BlobField()
+    privateKey = BlobField()
+    publicKey = BlobField()
     uid = UUIDField(unique=True, primary_key=True)

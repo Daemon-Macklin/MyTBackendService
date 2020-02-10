@@ -38,9 +38,13 @@ def createUser():
     else:
         return Response.make_error_resp(msg="Password is required", code=400)
 
+    privateKey, publicKey = encryption.generateSSHKey()
+    privateKey = encryption.encryptString(password=data['password'], salt=keySalt, resKey=resKey, string=privateKey)
+    publicKey = encryption.encryptString(password=data['password'], salt=keySalt, resKey=resKey, string=publicKey)
+
     try:
         User.create(userName=userName, email=email, password=password, passSalt=passSalt,
-                    resKey=resKey, keySalt=keySalt, uid=str(uuid.uuid4()))
+                    resKey=resKey, keySalt=keySalt, privateKey=privateKey, publicKey=publicKey, uid=str(uuid.uuid4()))
 
     except IntegrityError as e:
         print(e)
