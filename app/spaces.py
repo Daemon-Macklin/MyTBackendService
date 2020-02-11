@@ -88,7 +88,7 @@ def createSpace():
             secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.secretKey)
             accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.accessKey)
             publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=user.publicKey)
-            varPath = tf.generateAWSVars(secretKey, accessKey, publicKey, safeSpaceName, spacePath)
+            varPath = tf.generateAWSSpaceVars(secretKey, accessKey, publicKey, safeSpaceName, spacePath)
 
 
         elif cloudService == 'openstack':
@@ -98,9 +98,28 @@ def createSpace():
 
         output, createResultCode = tf.create(spacePath)
 
-        print(output)
+        if createResultCode != 0:
+            # Add destroy function here
+            return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
+
+        keyPairId = output["key_pair"]["value"]
+        securityGroupId = output["security_group"]["value"]
+        subnetId = output["subnet"]["value"]
+
+        newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId, subnetId=subnetId, uid=uid, cid=cid)
+        try:
+            newSpace = SpaceAWS.get(SpaceAWS.id == newSpace.id)
+        except AWSCreds.DoesNotExist as e:
+            print(e)
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+        res = {
+            "id" : newSpace.id,
+            "keyPair" : newSpace.keyPairId,
+            "SG" : newSpace.securityGroupId,
+            "subnet" : newSpace.subnetId
+        }
+        return Response.make_json_response(res)
 
     else:
         return Response.make_error_resp(msg="Password is incorrect")
-
-    return "Whoops this function is not complete"

@@ -1,5 +1,6 @@
 from peewee import *
 from .userModel import User
+from .credentialsModel import AWSCreds
 import uuid
 
 db = SqliteDatabase('MyTDatabase.db')
@@ -11,9 +12,10 @@ class BaseModel(Model):
 
 
 class SpaceAWS(BaseModel):
-    private_key = TextField()
-    key_pair_id = CharField()
-    security_group_id = CharField()
-    gateway_id = CharField()
+    dir = CharField()
+    keyPairId = CharField()
+    securityGroupId = CharField()
+    subnetId = CharField()
     uid = ForeignKeyField(model=User)
+    cid = ForeignKeyField(model=AWSCreds)
     id = UUIDField(unique=True, primary_key=True, default=str(uuid.uuid4()))
