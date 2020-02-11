@@ -3,7 +3,7 @@ resource "aws_vpc" "my_vpc" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "MyTVPC"
+    Name = "${var.space_name}-VPC"
   }
 }
 
@@ -11,7 +11,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.my_vpc.id
 
   tags = {
-    Name = "main"
+    Name = "${var.space_name}-GW"
   }
 }
 
@@ -22,7 +22,7 @@ resource "aws_subnet" "my_subnet" {
   availability_zone = "eu-west-1a"
   map_public_ip_on_launch = true
   tags = {
-    Name = "MyTSubnet"
+    Name = "${var.space_name}-Subnet"
   }
 }
 
@@ -33,7 +33,7 @@ resource "aws_route" "route" {
 }
 
 resource "aws_security_group" "MyT-SG" {
-  name        = "MyT-SG"
+  name        = "${var.space_name}-SG"
   description = "Allow inbound traffic on required MyT ports"
   vpc_id      = aws_vpc.my_vpc.id
 
@@ -81,8 +81,8 @@ resource "aws_security_group" "MyT-SG" {
 }
 
 resource "aws_key_pair" "MyT-Key" {
-  key_name   = "myt-key"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgCHDE7WffkghdAIeoCazVgIctTdsOM+yKHCgek/IbUUveWGPlPgMsxLGGvWrXe/nLDsNVEXvIPZNvsKFLtXnP24DBXws8zi1XgJCzsd4CxFgoRr0DVnHlvKCatezKiqo1FB35Bn5fxy7414w96rrCsesbXbivPu3dd9O/vAC4LxjXoNE4wChWDfxMPCUVhbLtskvTQP683UdGlEhLdDJbQtrfgAeaWFg0nWs6xxsxkFEbTIlrP6562XqBxg3AbCeEALzGG7W3s0LS2+5QO6QC6WUZQsolrh85ktnzs2CYKPThk8Bv8qoUqWQ1VEkuKn61TPAWB3lnfuk6ymzNWD+T dmacklin@DESKTOP-KNU45C3"
+  key_name   = "${var.space_name}-key"
+  public_key = var.public_key
 }
 
 output "key_pair" {

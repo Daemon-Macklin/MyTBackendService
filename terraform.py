@@ -21,11 +21,12 @@ def create(pathToInf):
     # Return the outputs
     return outputs, return_code
 
-def generateAWSVars(secretKey, accessKey, publicKey, spacePath):
+def generateAWSVars(secretKey, accessKey, publicKey, spaceName, spacePath):
 
-    string = 'variable "aws_secret_key"{\n  default = ' + secretKey + '\n }\n\n\
-    variable "aws_access_key" { \n  default = ' +accessKey +' \n }\n\n\
-    variable "public_key" { \n  default = ' + publicKey + ' \n }\n\n'
+    string = 'variable "aws_secret_key"{\n  default = "' + secretKey + '"\n }\n\n\
+    variable "aws_access_key" { \n  default = "' +accessKey +'"\n}\n\n\
+    variable "public_key" { \n  default = "' + publicKey + '"\n}\n\n\
+    variable "space_name" { \n default = "' + spaceName + '" \n } \n'
 
     path = spacePath + "/variables.tf"
 

@@ -55,6 +55,8 @@ def createSpace():
         return Response.make_error_resp(msg="Name of space required", code=400)
 
     safeSpaceName = spaceName.replace('/', '_')
+    safeSpaceName = safeSpaceName.replace(' ', '_')
+
     spacePath = os.path.join("spaces", safeSpaceName)
 
     try:
@@ -86,11 +88,17 @@ def createSpace():
             secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.secretKey)
             accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.accessKey)
             publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=user.publicKey)
-            tf.generateAWSVars(secretKey, accessKey, publicKey, spacePath)
+            varPath = tf.generateAWSVars(secretKey, accessKey, publicKey, safeSpaceName, spacePath)
 
 
         elif cloudService == 'openstack':
-            return Response.make_success_resp("Whoops Spaces are not required for openstack")
+            return Response.make_success_resp("Spaces are not required for openstack")
+
+        initResultCode = tf.init(spacePath)
+
+        output, createResultCode = tf.create(spacePath)
+
+        print(output)
 
     else:
         return Response.make_error_resp(msg="Password is incorrect")
