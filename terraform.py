@@ -6,11 +6,11 @@ def init(pathtoPlatform):
     terra = Terraform(pathtoPlatform)
     return_code = terra.init()
 
-def create(pathToPlatform):
+def create(pathToInf):
 
     # Initalize a terraform object
     # Make the working directory the openstack directory
-    terra = Terraform(pathToPlatform)
+    terra = Terraform(pathToInf)
 
     # Apply the IAC in the openstack directory and skip the planning Stage
     return_code, stdout, stderr = terra.apply(skip_plan=True)
@@ -20,3 +20,17 @@ def create(pathToPlatform):
 
     # Return the outputs
     return outputs, return_code
+
+def generateAWSVars(secretKey, accessKey, publicKey, spacePath):
+
+    string = 'variable "aws_secret_key"{\n  default = ' + secretKey + '\n }\n\n\
+    variable "aws_access_key" { \n  default = ' +accessKey +' \n }\n\n\
+    variable "public_key" { \n  default = ' + publicKey + ' \n }\n\n'
+
+    path = spacePath + "/variables.tf"
+
+    f = open(path, "w")
+    f.write(string)
+    f.close()
+
+    return path

@@ -33,6 +33,10 @@ def encryptString(password, salt, resKey, string):
 
 def decryptString(password, salt, resKey, string):
 
+    try:
+        string = str.encode(string)
+    except TypeError:
+        pass
     masterKey = decryptMasterKey(password, salt, resKey)
     f = Fernet(masterKey)
     return str(f.decrypt(string), 'utf-8')
