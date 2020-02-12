@@ -1,11 +1,12 @@
 from python_terraform import Terraform
 
-
+# Function to initialize terraform directory
 def init(pathtoPlatform):
 
     terra = Terraform(pathtoPlatform)
-    return_code = terra.init()
+    return terra.init()
 
+# Function to run create infrastructure scripts
 def create(pathToInf):
 
     # Initalize a terraform object
@@ -21,6 +22,7 @@ def create(pathToInf):
     # Return the outputs
     return outputs, return_code
 
+# Function to generate variables file for aws spaces
 def generateAWSSpaceVars(secretKey, accessKey, publicKey, spaceName, spacePath):
 
     string = 'variable "aws_secret_key"{\n  default = "' + secretKey + '"\n }\n\n\
@@ -36,6 +38,7 @@ def generateAWSSpaceVars(secretKey, accessKey, publicKey, spaceName, spacePath):
 
     return path
 
+# Function to generate variables file for aws platforms
 def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, spaceName):
 
     string = 'variable "key_pair_id"{\n  default = "' + keyPairId + '"\n }\n\n\

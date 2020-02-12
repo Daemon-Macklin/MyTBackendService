@@ -21,11 +21,18 @@ creds id
 user password
 cloud service
 platform name
+
+Returns:
+id
+keypair id
+subnet id
+security group id
 """
 @spaces.route('spaces/create', methods=["Post"])
 def createSpace():
     data = request.json
 
+    # Verify required fields
     if 'uid' in data:
         uid = data['uid']
     else:
@@ -54,11 +61,20 @@ def createSpace():
     else:
         return Response.make_error_resp(msg="Name of space required", code=400)
 
+    # Get rid of unsafe characters in the name
     safeSpaceName = spaceName.replace('/', '_')
     safeSpaceName = safeSpaceName.replace(' ', '_')
 
+    # Create a safe path
     spacePath = os.path.join("spaces", safeSpaceName)
 
+    # Get the users data
+    try:
+        user = User.get(User.uid == uid)
+    except User.DoesNotExist:
+        return Response.make_error_resp(msg="User does not exist", code=404)
+
+    # Create a new directory for the space
     try:
         os.makedirs(spacePath)
     except FileExistsError as e:
@@ -69,50 +85,64 @@ def createSpace():
         return Response.make_error_resp(msg="Error Creating Space Directory", code=400)
 
 
-    user = User.get(User.uid == uid)
+    # Verify the users password
     if pbkdf2_sha256.verify(password, user.password):
 
         tfPath = "terraformScripts/createSpace/aws"
         requiredFiles = ["deploy.tf", "provider.tf"]
 
+        # Get the files from the source code directory
         for file in requiredFiles:
             copyfile(tfPath + "/" + file, spacePath + "/" + file)
 
+        # Check the cloud service option
         if cloudService == 'aws':
 
+            # Get the aws creds object
             try:
                 creds = AWSCreds.get((AWSCreds.id == cid) & (AWSCreds.uid == uid))
             except AWSCreds.DoesNotExist:
                 return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
+            # Decrypt the user data
             secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.secretKey)
             accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.accessKey)
             publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=user.publicKey)
+
+            # Generate the variables file
             varPath = tf.generateAWSSpaceVars(secretKey, accessKey, publicKey, safeSpaceName, spacePath)
 
 
         elif cloudService == 'openstack':
             return Response.make_success_resp("Spaces are not required for openstack")
 
+        # Init the terraform directory
         initResultCode = tf.init(spacePath)
 
+        # Run the terrafom script
         output, createResultCode = tf.create(spacePath)
 
+        # Check the result code for errors
         if createResultCode != 0:
             # Add destroy function here
             return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
 
+        # Get data from the terraform outputs
         keyPairId = output["key_pair"]["value"]
         securityGroupId = output["security_group"]["value"]
         subnetId = output["subnet"]["value"]
 
+        # Create the space object
         newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId, subnetId=subnetId, uid=uid, cid=cid)
+
+        # Get the new space object
         try:
             newSpace = SpaceAWS.get(SpaceAWS.id == newSpace.id)
         except AWSCreds.DoesNotExist as e:
             print(e)
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
+        # Return the space data
         res = {
             "id" : newSpace.id,
             "keyPair" : newSpace.keyPairId,

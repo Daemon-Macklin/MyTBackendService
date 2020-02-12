@@ -1,7 +1,7 @@
 from flask import Flask
 from app import EXPORT_BLUEPRINTS
 
-
+# Create app
 def createApp():
     app = Flask(__name__)
     app.config.from_pyfile('app/config.py')

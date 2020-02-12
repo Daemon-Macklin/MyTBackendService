@@ -10,9 +10,7 @@ import time
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
 
 
-# End Point to create platform. Takes in a number of requirements
-# 1. Name for platform
-# 2. Cloud service to deploy to
+
 @platform_crud.route('platform/create', methods=["Post"])
 def createPlatform():
     data = request.json

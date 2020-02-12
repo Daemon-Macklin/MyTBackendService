@@ -15,11 +15,16 @@ access key
 secret key
 password
 User id
+
+Returns:
+Creds id
+Creds name
 """
 @credentials.route('credentials/create/aws', methods=["Post"])
 def createCredentials():
     data = request.json
 
+    # Check required fields
     if 'name' in data:
         name = data['name']
     else:
@@ -45,24 +50,34 @@ def createCredentials():
     else:
         return Response.make_error_resp("Secret Key is Required")
 
-    user = User.get(User.uid == uid)
-    if user is None:
-        return Response.make_error_resp(msg="No User found", code=404)
-    elif pbkdf2_sha256.verify(password, user.password):
+    # Get the user
+    try:
+        user = User.get(User.uid == uid)
+    except User.DoesNotExist:
+        return Response.make_error_resp(msg="User does not exist", code=404)
 
+    # Verify user password
+    if pbkdf2_sha256.verify(password, user.password):
+
+        # Encrypt the user data
         accessKey = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=accessKey)
         secretKey = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=secretKey)
 
+        # Create the credentials object
         try:
-            newCredentials = AWSCreds.create(name=name, accessKey=accessKey, secretKey=secretKey, uid=uid,
+            newCreds = AWSCreds.create(name=name, accessKey=accessKey, secretKey=secretKey, uid=uid,
                                              id=str(uuid.uuid4()))
         except Exception as e:
             print(e)
             return Response.make_error_resp("Error Creating Creds")
 
-        creds = AWSCreds.get(AWSCreds.id == newCredentials.id)
-        if creds is None:
-            return Response.make_error_resp("Error Creating Creds")
+        # Check the creds are there
+        try:
+            creds = AWSCreds.get(AWSCreds.id == newCreds.id)
+        except AWSCreds.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+        # Return the name and id of the creds
         res = {
             'name': creds.name,
             'id': creds.id
