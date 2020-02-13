@@ -99,7 +99,7 @@ Username
 Email
 Uid
 """
-@users.route('users/login', methods=['Get'])
+@users.route('users/login', methods=['Post'])
 def login():
     data = request.json
 
