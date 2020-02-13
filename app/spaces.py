@@ -142,7 +142,7 @@ def createSpace():
             return Response.make_error_resp(msg="Error Finding Creds", code=404)
 
         # Remove the vars file
-        os.remove(varPath)
+        # os.remove(varPath)
 
         # Return the space data
         res = {

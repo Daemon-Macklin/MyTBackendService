@@ -78,6 +78,8 @@ def createPlatform():
                                          string=creds.secretKey)
     accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                          string=creds.accessKey)
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=user.privateKey)
 
     safePlaformName = platformName.replace('/', '_')
     safePlaformName = safePlaformName.replace(' ', '_')
@@ -115,7 +117,7 @@ def createPlatform():
     output, createResultCode = tf.create(platformPath)
 
     # Remove the vars file
-    os.remove(varPath)
+    # os.remove(varPath)
 
     if createResultCode != 0:
         # Add destroy function here
@@ -126,7 +128,7 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
-    output, error = ab.configServer(output["instance_ip_address"]["value"], ansiblePath)
+    output, error = ab.configServer(output["instance_ip_address"]["value"], privateKey, ansiblePath)
 
     print(output)
     print(error)
