@@ -6,7 +6,7 @@ resource "aws_instance" "web" {
   subnet_id = var.subnet_id
 
   tags = {
-    Name = "MyTPlatform"
+    Name = var.platform_name
   }
 }
 
@@ -14,7 +14,7 @@ resource "aws_ebs_volume" "db-volume" {
   availability_zone = "eu-west-1a"
   size              = 10
   tags = {
-    Name = "MyT-DB storage"
+    Name = "${var.platform_name}-storage"
   }
 }
 

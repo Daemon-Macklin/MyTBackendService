@@ -102,7 +102,7 @@ def createSpace():
             try:
                 creds = AWSCreds.get((AWSCreds.id == cid) & (AWSCreds.uid == uid))
             except AWSCreds.DoesNotExist:
-                return Response.make_error_resp(msg="Error Finding Creds", code=400)
+                return Response.make_error_resp(msg="Error Finding Creds", code=404)
 
             # Decrypt the user data
             secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.secretKey)
@@ -139,8 +139,10 @@ def createSpace():
         try:
             newSpace = SpaceAWS.get(SpaceAWS.id == newSpace.id)
         except AWSCreds.DoesNotExist as e:
-            print(e)
-            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+            return Response.make_error_resp(msg="Error Finding Creds", code=404)
+
+        # Remove the vars file
+        os.remove(varPath)
 
         # Return the space data
         res = {

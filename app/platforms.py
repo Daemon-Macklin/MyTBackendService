@@ -4,18 +4,29 @@ import terraform as tf
 import ansibleCon as ab
 from app.config import URL_PREFIX
 from shutil import copyfile
+from .models.credentialsModel import AWSCreds, OpenstackCreds
+from .models.userModel import User
+from .models.spaceModel import SpaceAWS
+from passlib.hash import pbkdf2_sha256
+import encryption
 import os
 import time
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
 
 
-
+"""
+Route to create a platform
+Takes in
+Platform name
+Cloud Service
+Space id
+Password
+User id
+"""
 @platform_crud.route('platform/create', methods=["Post"])
 def createPlatform():
     data = request.json
-    platformName = None
-    cloudService = None
     externalVolume = None
     print(data)
     if 'platformName' in data:
@@ -28,15 +39,55 @@ def createPlatform():
     else:
         return Response.make_error_resp(msg="Cloud Service Choice is required", code=400)
 
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp(msg="User ID is required", code=400)
+
+    try:
+        user = User.get(User.uid == uid)
+    except User.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+
+    if 'password' in data:
+        password = data['password']
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is Incorrect", code=400)
+
+    if 'sid' in data:
+        sid = data['sid']
+    else:
+        return Response.make_error_resp(msg="Space ID is required", code=400)
+
+    try:
+        space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
+    except AWSCreds.DoesNotExist:
+        return Response.make_error_resp(msg="Error Finding Creds", code=404)
+
+    # Get the aws creds object
+    try:
+        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
+    except AWSCreds.DoesNotExist:
+        return Response.make_error_resp(msg="Error Finding Creds", code=404)
+
+    # Decrypt the user data
+    secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.secretKey)
+    accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.accessKey)
+
     safePlaformName = platformName.replace('/', '_')
-    platformPath = os.path.join("platforms", safePlaformName)
+    safePlaformName = safePlaformName.replace(' ', '_')
+
+    platformPath = os.path.join(space.dir + "/platforms", safePlaformName)
     try:
         os.makedirs(platformPath)
     except FileExistsError as e:
-        print(e)
         return Response.make_error_resp(msg="Platform Name already used", code=400)
     except Exception as e:
-        print(e)
         return Response.make_error_resp(msg="Error Creating Platform Directory", code=400)
 
     validPlatforms = ["aws", "openstack"]
@@ -46,6 +97,7 @@ def createPlatform():
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
         externalVolume = "/dev/nvme1n1"
+        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey, accessKey, safePlaformName, platformPath)
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
@@ -53,7 +105,7 @@ def createPlatform():
     ansiblePath = "ansiblePlaybooks/createPlatform"
     updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath)
 
-    requiredFiles = ["deploy.tf", "provider.tf", "variables.tf"]
+    requiredFiles = ["deploy.tf", "provider.tf"]
 
     for file in requiredFiles:
         copyfile(tfPath + "/" + file, platformPath + "/" + file)
@@ -62,8 +114,9 @@ def createPlatform():
 
     output, createResultCode = tf.create(platformPath)
 
-    print(createResultCode)
-    print(output)
+    # Remove the vars file
+    os.remove(varPath)
+
     if createResultCode != 0:
         # Add destroy function here
         return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
