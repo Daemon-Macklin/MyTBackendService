@@ -135,3 +135,55 @@ def login():
     else:
         return Response.make_error_resp(msg="Password Incorrect", code=400)
 
+"""
+Route to update user data
+Takes in:
+uid
+password
+new username
+new password
+
+Returns
+Updated user object
+"""
+@users.route('users/update', methods=['Post'])
+def updateUser():
+
+    data = request.json
+
+    # Verify data
+    if 'uid' in data:
+        uid = data["uid"]
+    else:
+        return Response.make_error_resp(msg="UID is required", code=400)
+
+    try:
+        user = User.get(User.uid == uid)
+    except User.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    # Verify password
+    if pbkdf2_sha256.verify(password, user.password):
+
+        if data["newPassword"] is not None:
+            pass
+        if data["newUserName"] is not None:
+            user.userName = data["newUserName"]
+            user.save()
+        # Return data
+        res = {
+            'success': True,
+            'username': user.userName,
+            'email': user.email,
+            'uid': user.uid,
+        }
+        return Response.make_json_response(res)
+    else:
+        return Response.make_error_resp(msg="Password Incorrect", code=400)
