@@ -7,7 +7,9 @@ from app.config import URL_PREFIX
 from .models.userModel import *
 from .models.spaceModel import *
 from .models.credentialsModel import *
+from .models.platformModel import *
 import os
+import uuid
 
 users = Blueprint('users', __name__, url_prefix=URL_PREFIX)
 
@@ -28,7 +30,7 @@ def createUser():
 
     # Create the database tables if they don't already exist.
     db.connect()
-    db.create_tables([Users, SpaceAWS, AWSCreds, OpenstackCreds])
+    db.create_tables([Users, SpaceAWS, AWSCreds, OpenstackCreds, Platforms])
 
     data = request.json
 

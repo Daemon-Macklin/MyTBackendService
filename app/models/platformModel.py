@@ -11,10 +11,10 @@ class BaseModel(Model):
         database = db
 
 
-class PlatformModel(BaseModel):
+class Platforms(BaseModel):
     dir = CharField()
-    uid = ForeignKeyField(model=User)
-    sid = ForeignKeyField()
+    uid = ForeignKeyField(model=Users)
+    sid = CharField()
     cloudService = CharField()
     ipAddress = CharField()
     id = UUIDField(unique=True, primary_key=True)

@@ -10,6 +10,7 @@ from .models.spaceModel import SpaceAWS
 from .models.credentialsModel import AWSCreds
 from passlib.hash import pbkdf2_sha256
 import encryption
+import uuid
 
 spaces = Blueprint('spaces', __name__, url_prefix=URL_PREFIX)
 
@@ -133,7 +134,8 @@ def createSpace():
         subnetId = output["subnet"]["value"]
 
         # Create the space object
-        newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId, subnetId=subnetId, uid=uid, cid=cid)
+        newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId, subnetId=subnetId,
+                                   uid=uid, cid=cid, id=str(uuid.uuid4()))
 
         # Get the new space object
         try:

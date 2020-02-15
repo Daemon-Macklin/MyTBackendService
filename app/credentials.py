@@ -4,6 +4,7 @@ from app.config import URL_PREFIX
 import response as Response
 import encryption
 from .models.credentialsModel import *
+import uuid
 
 credentials = Blueprint('credentials', __name__, url_prefix=URL_PREFIX)
 
@@ -52,7 +53,7 @@ def createCredentials():
 
     # Get the user
     try:
-        user = User.get(User.uid == uid)
+        user = Users.get(Users.uid == uid)
     except User.DoesNotExist:
         return Response.make_error_resp(msg="User does not exist", code=404)
 

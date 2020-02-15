@@ -7,10 +7,12 @@ from shutil import copyfile
 from .models.credentialsModel import AWSCreds, OpenstackCreds
 from .models.userModel import Users
 from .models.spaceModel import SpaceAWS
+from .models.platformModel import Platforms
 from passlib.hash import pbkdf2_sha256
 import encryption
 import os
 import time
+import uuid
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
 
@@ -124,6 +126,8 @@ def createPlatform():
         return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
 
     isUp = serverCheck(output["instance_ip_address"]["value"])
+
+    Platforms.create(dir=platformPath, uid=user.uid, sid=space.id, cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"], id=str(uuid.uuid4()))
 
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
