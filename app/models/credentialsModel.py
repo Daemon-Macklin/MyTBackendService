@@ -1,5 +1,5 @@
 from peewee import *
-from .userModel import User
+from .userModel import Users
 import uuid
 
 db = SqliteDatabase('MyTDatabase.db')
@@ -26,4 +26,4 @@ class OpenstackCreds(BaseModel):
     key_pair: CharField()
     tenantName: CharField()
     uid = ForeignKeyField(model=User)
-    id = UUIDField(unique=True, primary_key=True, default=str(uuid.uuid4()))
+    id = UUIDField(unique=True, primary_key=True)

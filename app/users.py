@@ -28,7 +28,7 @@ def createUser():
 
     # Create the database tables if they don't already exist.
     db.connect()
-    db.create_tables([User, SpaceAWS, AWSCreds, OpenstackCreds])
+    db.create_tables([Users, SpaceAWS, AWSCreds, OpenstackCreds])
 
     data = request.json
 
@@ -64,7 +64,7 @@ def createUser():
 
     # Create the user
     try:
-        User.create(userName=userName, email=email, password=password, passSalt=passSalt,
+        Users.create(userName=userName, email=email, password=password, passSalt=passSalt,
                     resKey=resKey, keySalt=keySalt, privateKey=privateKey, publicKey=publicKey, uid=str(uuid.uuid4()))
 
     except IntegrityError as e:
@@ -76,8 +76,8 @@ def createUser():
         return Response.make_error_resp(msg="Error creating user")
 
     try:
-        user = User.get(User.email == email)
-    except User.DoesNotExist:
+        user = Users.get(Users.email == email)
+    except Users.DoesNotExist:
         return Response.make_error_resp("Error Finding user")
 
     res = {
@@ -115,8 +115,8 @@ def login():
         return Response.make_error_resp(msg="Password is required", code=400)
 
     try:
-        user = User.get(User.email == email)
-    except User.DoesNotExist:
+        user = Users.get(Users.email == email)
+    except Users.DoesNotExist:
         return Response.make_error_resp(msg="No User Found")
     except:
         return Response.make_error_resp(msg="Error reading database", code=500)
@@ -158,7 +158,7 @@ def updateUser():
         return Response.make_error_resp(msg="UID is required", code=400)
 
     try:
-        user = User.get(User.uid == uid)
+        user = Users.get(Users.uid == uid)
     except User.DoesNotExist:
         return Response.make_error_resp(msg="No User Found")
     except:

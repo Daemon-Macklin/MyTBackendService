@@ -7,7 +7,7 @@ class BaseModel(Model):
     class Meta:
         database = db
 
-class User(BaseModel):
+class Users(BaseModel):
     userName = CharField(unique=True)
     password = CharField()
     passSalt = BlobField()

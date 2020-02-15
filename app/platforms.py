@@ -5,7 +5,7 @@ import ansibleCon as ab
 from app.config import URL_PREFIX
 from shutil import copyfile
 from .models.credentialsModel import AWSCreds, OpenstackCreds
-from .models.userModel import User
+from .models.userModel import Users
 from .models.spaceModel import SpaceAWS
 from passlib.hash import pbkdf2_sha256
 import encryption
@@ -45,8 +45,8 @@ def createPlatform():
         return Response.make_error_resp(msg="User ID is required", code=400)
 
     try:
-        user = User.get(User.uid == uid)
-    except User.DoesNotExist:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
         return Response.make_error_resp(msg="No User Found")
 
     if 'password' in data:

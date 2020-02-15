@@ -5,7 +5,7 @@ from app.config import URL_PREFIX
 from shutil import copyfile
 import os
 import time
-from .models.userModel import User
+from .models.userModel import Users
 from .models.spaceModel import SpaceAWS
 from .models.credentialsModel import AWSCreds
 from passlib.hash import pbkdf2_sha256
@@ -70,7 +70,7 @@ def createSpace():
 
     # Get the users data
     try:
-        user = User.get(User.uid == uid)
+        user = Users.get(Users.uid == uid)
     except User.DoesNotExist:
         return Response.make_error_resp(msg="User does not exist", code=404)
 

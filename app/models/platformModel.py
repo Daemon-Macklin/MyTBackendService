@@ -11,11 +11,10 @@ class BaseModel(Model):
         database = db
 
 
-class SpaceAWS(BaseModel):
+class PlatformModel(BaseModel):
     dir = CharField()
-    keyPairId = CharField()
-    securityGroupId = CharField()
-    subnetId = CharField()
     uid = ForeignKeyField(model=User)
-    cid = ForeignKeyField(model=AWSCreds)
+    sid = ForeignKeyField()
+    cloudService = CharField()
+    ipAddress = CharField()
     id = UUIDField(unique=True, primary_key=True)
