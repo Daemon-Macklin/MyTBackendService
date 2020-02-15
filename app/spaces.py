@@ -8,6 +8,7 @@ import time
 from .models.userModel import Users
 from .models.spaceModel import SpaceAWS
 from .models.credentialsModel import AWSCreds
+from .models.platformModel import Platforms
 from passlib.hash import pbkdf2_sha256
 import encryption
 import uuid
@@ -174,8 +175,10 @@ def remotePlatform(id):
     except SpaceAWS.DoesNotExist:
         return Response.make_error_resp(msg="Space Not Found", code=400)
 
-    try:
-        platforms = 
+    platforms = Platforms.select().where(Platforms.sid == space.id)
+    if len(platforms) != 0:
+        return Response.make_error_resp(msg="Please remove all platforms in this space before removing space")
+
     data = request.json
 
     if 'uid' in data:
@@ -203,8 +206,7 @@ def remotePlatform(id):
     accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                          string=creds.accessKey)
 
-    tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
-                                         "", space.dir)
+    tf.generateAWSSpaceVars(secretKey, accessKey, "", "", space.dir)
 
     path = space.dir
     resultCode = tf.destroy(space.dir)
