@@ -67,7 +67,7 @@ def createSpace():
     safeSpaceName = safeSpaceName.replace(' ', '_')
 
     # Create a safe path
-    spacePath = os.path.join("spaces", safeSpaceName)
+    spacePath = os.path.join("spaces", safeSpaceName, "terraform")
 
     # Get the users data
     try:

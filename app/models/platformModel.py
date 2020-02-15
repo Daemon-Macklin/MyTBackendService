@@ -13,6 +13,7 @@ class BaseModel(Model):
 
 class Platforms(BaseModel):
     dir = CharField()
+    name = CharField()
     uid = ForeignKeyField(model=Users)
     sid = CharField()
     cloudService = CharField()

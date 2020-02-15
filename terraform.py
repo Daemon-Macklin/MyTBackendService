@@ -22,6 +22,14 @@ def create(pathToInf):
     # Return the outputs
     return outputs, return_code
 
+def destroy(pathToInf):
+
+    terra = Terraform(pathToInf)
+
+    return_code, stdout, stderr = terra.destroy()
+
+    return return_code
+
 # Function to generate variables file for aws spaces
 def generateAWSSpaceVars(secretKey, accessKey, publicKey, spaceName, spacePath):
 
