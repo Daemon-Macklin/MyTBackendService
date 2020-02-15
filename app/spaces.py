@@ -11,6 +11,7 @@ from .models.credentialsModel import AWSCreds
 from passlib.hash import pbkdf2_sha256
 import encryption
 import uuid
+import shutil
 
 spaces = Blueprint('spaces', __name__, url_prefix=URL_PREFIX)
 
@@ -67,12 +68,12 @@ def createSpace():
     safeSpaceName = safeSpaceName.replace(' ', '_')
 
     # Create a safe path
-    spacePath = os.path.join("spaces", safeSpaceName, "terraform")
+    spacePath = os.path.join("spaces", safeSpaceName)
 
     # Get the users data
     try:
         user = Users.get(Users.uid == uid)
-    except User.DoesNotExist:
+    except Users.DoesNotExist:
         return Response.make_error_resp(msg="User does not exist", code=404)
 
     # Create a new directory for the space
@@ -157,3 +158,63 @@ def createSpace():
 
     else:
         return Response.make_error_resp(msg="Password is incorrect")
+
+
+"""
+Route that will delete a platform
+Takes in
+User id
+password
+space id
+"""
+@spaces.route('/space/remove/aws/<id>', methods=['Post'])
+def remotePlatform(id):
+    try:
+        space = SpaceAWS.get(SpaceAWS.id == id)
+    except SpaceAWS.DoesNotExist:
+        return Response.make_error_resp(msg="Space Not Found", code=400)
+
+    try:
+        platforms = 
+    data = request.json
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp(msg="User ID is required", code=400)
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+
+    if 'password' in data:
+        password = data['password']
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is Incorrect", code=400)
+
+    creds = AWSCreds.get(AWSCreds.id == space.cid)
+
+    secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.secretKey)
+    accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.accessKey)
+
+    tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
+                                         "", space.dir)
+
+    path = space.dir
+    resultCode = tf.destroy(space.dir)
+
+    if resultCode != 0:
+        return Response.make_error_resp(msg="Error deleting platform")
+
+    space.delete_instance()
+
+    if path != "":
+        shutil.rmtree(path)
+        return Response.make_success_resp(msg="Space Has been removed")
+

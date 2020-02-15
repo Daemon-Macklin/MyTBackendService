@@ -13,9 +13,9 @@ import encryption
 import os
 import time
 import uuid
+import shutil
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
-
 
 """
 Route to create a platform
@@ -26,6 +26,8 @@ Space id
 Password
 User id
 """
+
+
 @platform_crud.route('platform/create', methods=["Post"])
 def createPlatform():
     data = request.json
@@ -81,17 +83,17 @@ def createPlatform():
     accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                          string=creds.accessKey)
     privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                         string=user.privateKey)
+                                          string=user.privateKey)
 
     safePlaformName = platformName.replace('/', '_')
     safePlaformName = safePlaformName.replace(' ', '_')
 
-    platformPath = os.path.join(space.dir + "/platforms")
+    platformPath = os.path.join(space.dir, "platforms", safePlaformName)
     try:
         os.makedirs(platformPath)
     except FileExistsError as e:
         return Response.make_error_resp(msg="Platform Name already used", code=400)
-    except Exception as e:
+    except:
         return Response.make_error_resp(msg="Error Creating Platform Directory", code=400)
 
     validPlatforms = ["aws", "openstack"]
@@ -101,7 +103,8 @@ def createPlatform():
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
         externalVolume = "/dev/nvme1n1"
-        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey, accessKey, safePlaformName, platformPath)
+        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
+                                             accessKey, safePlaformName, platformPath)
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
@@ -127,7 +130,9 @@ def createPlatform():
 
     isUp = serverCheck(output["instance_ip_address"]["value"])
 
-    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id, cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"], id=str(uuid.uuid4()))
+    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
+                                   cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
+                                   id=str(uuid.uuid4()))
 
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
@@ -143,8 +148,8 @@ def createPlatform():
         return Response.make_error_resp(msg="Platform Not Found", code=400)
 
     res = {
-        "id" : platform.id,
-        "name" : platform.name
+        "id": platform.id,
+        "name": platform.name
     }
     return Response.make_json_response(res)
 
@@ -158,7 +163,6 @@ platform id
 """
 @platform_crud.route('/platform/remove/<id>', methods=['Post'])
 def remotePlatform(id):
-
     try:
         platform = Platforms.get(Platforms.id == id)
     except Platforms.DoesNotExist:
@@ -184,20 +188,21 @@ def remotePlatform(id):
     if not pbkdf2_sha256.verify(password, user.password):
         return Response.make_error_resp(msg="Password is Incorrect", code=400)
 
-    varPath = ""
+    path = ""
     if platform.cloudService == "aws":
 
-        space = SpaceAWS.get((AWSCreds.id == platform.sid) & (AWSCreds.uid == uid))
-        creds = AWSCreds.get(AWSCreds.id == space.id)
+        space = SpaceAWS.get((SpaceAWS.id == platform.sid) & (SpaceAWS.uid == uid))
+        creds = AWSCreds.get(AWSCreds.id == space.cid)
 
         secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                              string=creds.secretKey)
         accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                              string=creds.accessKey)
 
-        varPath = tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
-                                         "", platform.dir)
+        tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
+                                             "", platform.dir)
 
+        path = platform.dir
         resultCode = tf.destroy(platform.dir)
 
         if resultCode != 0:
@@ -205,11 +210,9 @@ def remotePlatform(id):
 
         platform.delete_instance()
 
-
-    if varPath != "":
-        os.rmdir(varPath)
+    if path != "":
+        shutil.rmtree(path)
         return Response.make_success_resp(msg="Platform Has been removed")
-
 
 
 # ==============Helper Functions=============#
