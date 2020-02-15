@@ -161,7 +161,7 @@ def updateUser():
 
     try:
         user = Users.get(Users.uid == uid)
-    except User.DoesNotExist:
+    except Users.DoesNotExist:
         return Response.make_error_resp(msg="No User Found")
     except:
         return Response.make_error_resp(msg="Error reading database", code=500)
@@ -189,3 +189,42 @@ def updateUser():
         return Response.make_json_response(res)
     else:
         return Response.make_error_resp(msg="Password Incorrect", code=400)
+
+"""
+Endpoint to remove a user
+
+takes in:
+uid
+password
+"""
+@users.route("/users/remove/<uid>", methods=["Post"])
+def removeUser(uid):
+
+    data = request.json
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    platforms = Platforms.select().where(Platforms.uid == user.uid)
+    awsSpaces = SpaceAWS.select().where(SpaceAWS.uid == user.uid)
+
+    if len(platforms) != 0 or len(awsSpaces) !=0:
+        return Response.make_error_resp(msg="Please remove all spaces and platforms before deleting account")
+
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    # Verify password
+    if pbkdf2_sha256.verify(password, user.password):
+
+        AWSCreds.delete().where(AWSCreds.uid == user.uid)
+        OpenstackCreds.delete().where(OpenstackCreds.uid == user.uid)
+
+        user.delete_instance()
+        return Response.make_success_resp("User has been removed")
