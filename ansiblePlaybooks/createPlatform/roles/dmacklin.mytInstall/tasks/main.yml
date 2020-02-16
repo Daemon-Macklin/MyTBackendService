@@ -15,6 +15,16 @@
     src: ../templates/dataProcessing.py
     dest: /opt/MyTApplication/dataProcessing.py
 
+- name: Configure config file
+  copy:
+    src: ../templates/config.ini
+    dest: /opt/MyTApplication/config.ini
+
+- name: Configure docker-compose file
+  copy:
+    src: ../templates/docker-compose
+    dest: /opt/MyTApplication/docker-compose
+
 - name: Set Ownership of application to ubuntu
   file:
     path: /opt/MyTApplication
@@ -22,6 +32,7 @@
     recurse: yes
     owner: ubuntu
     group: ubuntu
+
 
 - name: Build Data Processing Docker image from Dockerfile
   docker_image:

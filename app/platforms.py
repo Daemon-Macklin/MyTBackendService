@@ -25,6 +25,8 @@ Cloud Service
 Space id
 Password
 User id
+rabbitmq username
+rabbitmq password
 """
 
 
@@ -65,6 +67,16 @@ def createPlatform():
         sid = data['sid']
     else:
         return Response.make_error_resp(msg="Space ID is required", code=400)
+
+    if "rabbitUser" in data:
+        rabbitUser = data['rabbitUser']
+    else:
+        rabbitUser = ""
+
+    if "rabbitPass" in data:
+        rabbitPass = data['rabbitPass']
+    else:
+        rabbitPass = ""
 
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
@@ -109,8 +121,14 @@ def createPlatform():
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
 
-    ansiblePath = "ansiblePlaybooks/createPlatform"
-    updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath)
+    createAnsibleFiles = "ansiblePlaybooks/createPlatform"
+    ansiblePath = os.path.join(platformPath, "ansible")
+
+    shutil.copytree(createAnsibleFiles, ansiblePath)
+
+    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, ansiblePath)
+
+    ab.generateMyTConfig(rabbitUser, rabbitPass, ansiblePath)
 
     requiredFiles = ["deploy.tf", "provider.tf"]
 
@@ -232,18 +250,3 @@ def serverCheck(floating_ip):
             counter += 1
 
     return isUp
-
-
-def updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath):
-    # with is like your try .. finally block in this case
-    with open(ansiblePath + "/installService.yml", 'r') as file:
-        # read a list of lines into data
-        data = file.readlines()
-
-    # now change the 2nd line, note that you have to add a newline
-    data[3] = "    cloudService: '" + cloudService + "'\n"
-    data[4] = "    externalVol: '" + externalVolume + "'\n"
-
-    # and write everything back
-    with open(ansiblePath + "/installService.yml", 'w') as file:
-        file.writelines(data)
