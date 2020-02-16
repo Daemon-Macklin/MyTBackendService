@@ -20,10 +20,10 @@
     src: ../templates/config.ini
     dest: /opt/MyTApplication/config.ini
 
-- name: Configure docker-compose file
+- name: Configure docker-compose.yml file
   copy:
-    src: ../templates/docker-compose
-    dest: /opt/MyTApplication/docker-compose
+    src: ../templates/docker-compose.yml
+    dest: /opt/MyTApplication/docker-compose.yml
 
 - name: Set Ownership of application to ubuntu
   file:

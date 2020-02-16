@@ -228,3 +228,43 @@ def removeUser(uid):
 
         user.delete_instance()
         return Response.make_success_resp("User has been removed")
+
+"""
+Route to get the users ssh keys
+takes in
+uid
+password
+Returns
+public key
+private key
+"""
+@users.route('/users/sshKey/<uid>', methods=["Post"])
+def getSshKey(uid):
+    data = request.json
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    # Verify password
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is not correct", code=400)
+
+    # Encrypt the user ssh key
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=user.privateKey)
+    publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=user.publicKey)
+
+    res = {
+        "publicKey": publicKey,
+        "privateKey": privateKey
+    }
+
+    return Response.make_json_response(res)

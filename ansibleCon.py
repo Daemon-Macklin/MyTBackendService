@@ -66,13 +66,13 @@ def generateMyTConfig(rabbitUser, rabbitPass, ansiblePath):
 
 def setRabbitmqComposeData(rabbitUser, rabbitPass, ansiblePath):
 
-    dcPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "docker-compose")
+    dcPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "docker-compose.yml")
 
     with open(dcPath, 'r') as file:
         # read a list of lines into data
         data = file.readlines()
 
-    data[19] = "    environment \n"
+    data[19] = "    environment: \n"
     data[20] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
     data[21] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
 
