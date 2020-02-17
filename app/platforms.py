@@ -27,9 +27,8 @@ Password
 User id
 rabbitmq username
 rabbitmq password
+database
 """
-
-
 @platform_crud.route('platform/create', methods=["Post"])
 def createPlatform():
     data = request.json
@@ -77,6 +76,14 @@ def createPlatform():
         rabbitPass = data['rabbitPass']
     else:
         rabbitPass = ""
+
+    if "database" in data:
+        validDbs = ["influxdb", "mongodb"]
+        database = data['database']
+        if database not in validDbs:
+            return Response.make_error_resp(msg="Invalid database", code=400)
+    else:
+        return Response.make_error_resp(msg="Database is required", code=400)
 
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
@@ -126,9 +133,9 @@ def createPlatform():
 
     shutil.copytree(createAnsibleFiles, ansiblePath)
 
-    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, ansiblePath)
+    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath)
 
-    ab.generateMyTConfig(rabbitUser, rabbitPass, ansiblePath)
+    ab.generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath)
 
     requiredFiles = ["deploy.tf", "provider.tf"]
 

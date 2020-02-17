@@ -29,9 +29,9 @@ def configServer(floatingIp, privateKey, ansiblePath):
     os.remove(keyPath)
 
     # Return the output and error
-    return output, error
+    return "", ""
 
-def updateAnsiblePlaybookVars(cloudService, externalVolume, ansiblePath):
+def updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath):
     # with is like your try .. finally block in this case
     with open(ansiblePath + "/installService.yml", 'r') as file:
         # read a list of lines into data
@@ -40,19 +40,20 @@ def updateAnsiblePlaybookVars(cloudService, externalVolume, ansiblePath):
     # now change the 2nd line, note that you have to add a newline
     data[3] = "    cloudService: '" + cloudService + "'\n"
     data[4] = "    externalVol: '" + externalVolume + "'\n"
+    data[5] = "    database: '" + database + "' \n"
 
     # and write everything back
     with open(ansiblePath + "/installService.yml", 'w') as file:
         file.writelines(data)
 
-def generateMyTConfig(rabbitUser, rabbitPass, ansiblePath):
+def generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath):
 
     configPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "config.ini")
     # Create config parser object
     conf = configparser.ConfigParser()
 
     if rabbitUser != "" and rabbitPass != "":
-        setRabbitmqComposeData(rabbitUser, rabbitPass, ansiblePath)
+        setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath)
 
     # Generate config file data
     conf['rabbitmq'] = {
@@ -64,9 +65,9 @@ def generateMyTConfig(rabbitUser, rabbitPass, ansiblePath):
     with open(configPath, 'w') as configfile:
         conf.write(configfile)
 
-def setRabbitmqComposeData(rabbitUser, rabbitPass, ansiblePath):
+def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
 
-    dcPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "docker-compose.yml")
+    dcPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dockerComposeFiles", database + ".yml")
 
     with open(dcPath, 'r') as file:
         # read a list of lines into data
