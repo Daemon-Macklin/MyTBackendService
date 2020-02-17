@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from flask_jwt import JWT
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt
 from passlib.hash import pbkdf2_sha256
 import response as Response
 import encryption as encryption
@@ -82,10 +82,16 @@ def createUser():
     except Users.DoesNotExist:
         return Response.make_error_resp("Error Finding user")
 
+    # Generate User tokens
+    access_token = create_access_token(identity=user.userName)
+    refresh_token = create_refresh_token(identity=user.userName)
     res = {
-        'userName': user.userName,
+        'success' : True,
+        'username': user.userName,
         'email': user.email,
         'uid': user.uid,
+        'access_token': access_token,
+        'refresh_token': refresh_token
     }
     return Response.make_json_response(res)
 
@@ -126,12 +132,18 @@ def login():
     # Verify password
     if pbkdf2_sha256.verify(password, user.password):
 
+        # Generate User tokens
+        access_token = create_access_token(identity=user.userName)
+        refresh_token = create_refresh_token(identity=user.userName)
+
         # Return data
         res = {
             'success': True,
             'username': user.userName,
             'email': user.email,
             'uid': user.uid,
+            'access_token': access_token,
+            'refresh_token': refresh_token
         }
         return Response.make_json_response(res)
     else:
@@ -197,6 +209,7 @@ takes in:
 uid
 password
 """
+@jwt_required
 @users.route("/users/remove/<uid>", methods=["Post"])
 def removeUser(uid):
 
@@ -239,6 +252,7 @@ public key
 private key
 """
 @users.route('/users/sshKey/<uid>', methods=["Post"])
+@jwt_required
 def getSshKey(uid):
     data = request.json
 
@@ -268,3 +282,16 @@ def getSshKey(uid):
     }
 
     return Response.make_json_response(res)
+
+"""
+Function to refresh a token
+"""
+@users.route('/refresh', methods=['Get'])
+@jwt_refresh_token_required
+def refresh():
+    current_user = get_jwt_identity()
+    res = {
+        'access_token': create_access_token(identity=current_user)
+    }
+    Response.make_json_response(res)
+
