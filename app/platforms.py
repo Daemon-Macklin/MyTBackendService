@@ -13,9 +13,9 @@ import encryption
 import os
 import time
 import uuid
+import shutil
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
-
 
 """
 Route to create a platform
@@ -25,6 +25,9 @@ Cloud Service
 Space id
 Password
 User id
+rabbitmq username
+rabbitmq password
+database
 """
 @platform_crud.route('platform/create', methods=["Post"])
 def createPlatform():
@@ -64,10 +67,28 @@ def createPlatform():
     else:
         return Response.make_error_resp(msg="Space ID is required", code=400)
 
+    if "rabbitUser" in data:
+        rabbitUser = data['rabbitUser']
+    else:
+        rabbitUser = ""
+
+    if "rabbitPass" in data:
+        rabbitPass = data['rabbitPass']
+    else:
+        rabbitPass = ""
+
+    if "database" in data:
+        validDbs = ["influxdb", "mongodb"]
+        database = data['database']
+        if database not in validDbs:
+            return Response.make_error_resp(msg="Invalid database", code=400)
+    else:
+        return Response.make_error_resp(msg="Database is required", code=400)
+
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
-    except AWSCreds.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Creds", code=404)
+    except SpaceAWS.DoesNotExist:
+        return Response.make_error_resp(msg="Error Finding Space", code=404)
 
     # Get the aws creds object
     try:
@@ -81,17 +102,17 @@ def createPlatform():
     accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                          string=creds.accessKey)
     privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                         string=user.privateKey)
+                                          string=user.privateKey)
 
     safePlaformName = platformName.replace('/', '_')
     safePlaformName = safePlaformName.replace(' ', '_')
 
-    platformPath = os.path.join(space.dir + "/platforms", safePlaformName)
+    platformPath = os.path.join(space.dir, "platforms", safePlaformName)
     try:
         os.makedirs(platformPath)
     except FileExistsError as e:
         return Response.make_error_resp(msg="Platform Name already used", code=400)
-    except Exception as e:
+    except:
         return Response.make_error_resp(msg="Error Creating Platform Directory", code=400)
 
     validPlatforms = ["aws", "openstack"]
@@ -101,13 +122,20 @@ def createPlatform():
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
         externalVolume = "/dev/nvme1n1"
-        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey, accessKey, safePlaformName, platformPath)
+        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
+                                             accessKey, safePlaformName, platformPath)
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
 
-    ansiblePath = "ansiblePlaybooks/createPlatform"
-    updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath)
+    createAnsibleFiles = "ansiblePlaybooks/createPlatform"
+    ansiblePath = os.path.join(platformPath, "ansible")
+
+    shutil.copytree(createAnsibleFiles, ansiblePath)
+
+    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath)
+
+    ab.generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath)
 
     requiredFiles = ["deploy.tf", "provider.tf"]
 
@@ -119,7 +147,7 @@ def createPlatform():
     output, createResultCode = tf.create(platformPath)
 
     # Remove the vars file
-    # os.remove(varPath)
+    os.remove(varPath)
 
     if createResultCode != 0:
         # Add destroy function here
@@ -127,7 +155,9 @@ def createPlatform():
 
     isUp = serverCheck(output["instance_ip_address"]["value"])
 
-    Platforms.create(dir=platformPath, uid=user.uid, sid=space.id, cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"], id=str(uuid.uuid4()))
+    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
+                                   cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
+                                   id=str(uuid.uuid4()))
 
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
@@ -137,7 +167,77 @@ def createPlatform():
     print(output)
     print(error)
 
-    return Response.make_success_resp("Platform Created")
+    try:
+        platform = Platforms.get(Platforms.id == newPlatform.id)
+    except Platforms.DoesNotExist:
+        return Response.make_error_resp(msg="Platform Not Found", code=400)
+
+    res = {
+        "id": platform.id,
+        "name": platform.name
+    }
+    return Response.make_json_response(res)
+
+
+"""
+Route that will delete a platform
+Takes in
+User id
+password
+platform id
+"""
+@platform_crud.route('/platform/remove/<id>', methods=['Post'])
+def remotePlatform(id):
+    try:
+        platform = Platforms.get(Platforms.id == id)
+    except Platforms.DoesNotExist:
+        return Response.make_error_resp(msg="Platform Not Found", code=400)
+
+    data = request.json
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp(msg="User ID is required", code=400)
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+
+    if 'password' in data:
+        password = data['password']
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is Incorrect", code=400)
+
+    path = ""
+    if platform.cloudService == "aws":
+
+        space = SpaceAWS.get((SpaceAWS.id == platform.sid) & (SpaceAWS.uid == uid))
+        creds = AWSCreds.get(AWSCreds.id == space.cid)
+
+        secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                             string=creds.secretKey)
+        accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                             string=creds.accessKey)
+
+        tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
+                                             "", platform.dir)
+
+        path = platform.dir
+        resultCode = tf.destroy(platform.dir)
+
+        if resultCode != 0:
+            return Response.make_error_resp(msg="Error deleting platform")
+
+        platform.delete_instance()
+
+    if path != "":
+        shutil.rmtree(path)
+        return Response.make_success_resp(msg="Platform Has been removed")
 
 
 # ==============Helper Functions=============#
@@ -157,18 +257,3 @@ def serverCheck(floating_ip):
             counter += 1
 
     return isUp
-
-
-def updateAnsiblePlaybook(cloudService, externalVolume, ansiblePath):
-    # with is like your try .. finally block in this case
-    with open(ansiblePath + "/installService.yml", 'r') as file:
-        # read a list of lines into data
-        data = file.readlines()
-
-    # now change the 2nd line, note that you have to add a newline
-    data[3] = "    cloudService: '" + cloudService + "'\n"
-    data[4] = "    externalVol: '" + externalVolume + "'\n"
-
-    # and write everything back
-    with open(ansiblePath + "/installService.yml", 'w') as file:
-        file.writelines(data)
