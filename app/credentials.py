@@ -1,9 +1,12 @@
 from flask import Blueprint, request
 from passlib.hash import pbkdf2_sha256
 from app.config import URL_PREFIX
+from flask_jwt_extended import jwt_required
 import response as Response
 import encryption
 from .models.credentialsModel import *
+from .models.spaceModel import *
+from .models.platformModel import *
 import uuid
 
 credentials = Blueprint('credentials', __name__, url_prefix=URL_PREFIX)
@@ -22,6 +25,7 @@ Creds id
 Creds name
 """
 @credentials.route('credentials/create/aws', methods=["Post"])
+@jwt_required
 def createCredentials():
     data = request.json
 
@@ -54,7 +58,7 @@ def createCredentials():
     # Get the user
     try:
         user = Users.get(Users.uid == uid)
-    except User.DoesNotExist:
+    except Users.DoesNotExist:
         return Response.make_error_resp(msg="User does not exist", code=404)
 
     # Verify user password
@@ -87,3 +91,46 @@ def createCredentials():
 
     else:
         return Response.make_error_resp(msg="Password is not correct", code=400)
+
+"""
+Function to get all of the users credentials. 
+"""
+@credentials.route('credentials/get/<uid>', methods=["Get"])
+def getAllCreds(uid):
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    response = []
+    awsQuery = AWSCreds.select(AWSCreds.name, AWSCreds.id).where(AWSCreds.uid == user.uid)
+    for creds in awsQuery:
+        cred = {
+            "name": creds.name,
+            "id" : creds.id,
+            "type": "aws"
+        }
+        response.append(cred)
+
+    res = {
+        "creds": response
+    }
+    return Response.make_json_response(res)
+
+
+@credentials.route('credentials/remove/<type>/<id>', methods=["DELETE"])
+@jwt_required
+def removeCreds(type, id):
+
+    if type == "aws":
+        cred = AWSCreds.get(AWSCreds.id == id)
+        spaces = SpaceAWS.select().where(SpaceAWS.cid == cred.id)
+        if len(spaces) != 0:
+            return Response.make_error_resp(msg="Please Delete Spaces using these credentials before deleting "
+                                                "credentials", code=400)
+        else:
+            cred.delete_instance()
+            return Response.make_success_resp("Credentials have been removed")

@@ -86,7 +86,7 @@ def createUser():
     access_token = create_access_token(identity=user.userName)
     refresh_token = create_refresh_token(identity=user.userName)
     res = {
-        'success' : True,
+        'success': True,
         'username': user.userName,
         'email': user.email,
         'uid': user.uid,
@@ -209,8 +209,8 @@ takes in:
 uid
 password
 """
-@jwt_required
 @users.route("/users/remove/<uid>", methods=["Post"])
+@jwt_required
 def removeUser(uid):
 
     data = request.json
@@ -293,5 +293,5 @@ def refresh():
     res = {
         'access_token': create_access_token(identity=current_user)
     }
-    Response.make_json_response(res)
+    return Response.make_json_response(res)
 
