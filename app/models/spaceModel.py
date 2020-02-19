@@ -16,6 +16,7 @@ class SpaceAWS(BaseModel):
     keyPairId = CharField()
     securityGroupId = CharField()
     subnetId = CharField()
+    name = CharField()
     uid = ForeignKeyField(model=Users)
     cid = ForeignKeyField(model=AWSCreds)
     id = UUIDField(unique=True, primary_key=True)

@@ -96,6 +96,7 @@ def createCredentials():
 Function to get all of the users credentials. 
 """
 @credentials.route('credentials/get/<uid>', methods=["Get"])
+@jwt_required
 def getAllCreds(uid):
 
     try:

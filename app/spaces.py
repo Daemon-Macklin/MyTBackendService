@@ -13,6 +13,8 @@ from passlib.hash import pbkdf2_sha256
 import encryption
 import uuid
 import shutil
+from flask_jwt_extended import jwt_required
+
 
 spaces = Blueprint('spaces', __name__, url_prefix=URL_PREFIX)
 
@@ -23,7 +25,7 @@ User id
 creds id
 user password
 cloud service
-platform name
+space name
 
 Returns:
 id
@@ -32,6 +34,7 @@ subnet id
 security group id
 """
 @spaces.route('spaces/create', methods=["Post"])
+@jwt_required
 def createSpace():
     data = request.json
 
@@ -136,8 +139,8 @@ def createSpace():
         subnetId = output["subnet"]["value"]
 
         # Create the space object
-        newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId, subnetId=subnetId,
-                                   uid=uid, cid=cid, id=str(uuid.uuid4()))
+        newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId,
+                                   name=safeSpaceName, subnetId=subnetId, uid=uid, cid=cid, id=str(uuid.uuid4()))
 
         # Get the new space object
         try:
@@ -153,7 +156,8 @@ def createSpace():
             "id" : newSpace.id,
             "keyPair" : newSpace.keyPairId,
             "SG" : newSpace.securityGroupId,
-            "subnet" : newSpace.subnetId
+            "subnet" : newSpace.subnetId,
+            "name" : newSpace.name
         }
         return Response.make_json_response(res)
 
@@ -169,7 +173,8 @@ password
 space id
 """
 @spaces.route('/space/remove/aws/<id>', methods=['Post'])
-def remotePlatform(id):
+@jwt_required
+def removeAWSSpace(id):
     try:
         space = SpaceAWS.get(SpaceAWS.id == id)
     except SpaceAWS.DoesNotExist:
@@ -220,3 +225,28 @@ def remotePlatform(id):
         shutil.rmtree(path)
         return Response.make_success_resp(msg="Space Has been removed")
 
+
+@spaces.route('/spaces/get/<uid>', methods=['Get'])
+@jwt_required
+def getSpaces(uid):
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    response = []
+    awsQuery = SpaceAWS.select(SpaceAWS.name, SpaceAWS.id).where(SpaceAWS.uid == user.uid)
+    for space in awsQuery:
+        awsSpace = {
+            "name": space.name,
+            "id": space.id,
+            "type": "aws"
+        }
+        response.append(awsSpace)
+
+    res = {
+        "spaces": response
+    }
+    return Response.make_json_response(res)
