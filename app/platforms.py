@@ -14,6 +14,8 @@ import os
 import time
 import uuid
 import shutil
+from flask_jwt_extended import jwt_required
+
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
 
@@ -30,6 +32,7 @@ rabbitmq password
 database
 """
 @platform_crud.route('platform/create', methods=["Post"])
+@jwt_required
 def createPlatform():
     data = request.json
     externalVolume = None
@@ -187,7 +190,8 @@ password
 platform id
 """
 @platform_crud.route('/platform/remove/<id>', methods=['Post'])
-def remotePlatform(id):
+@jwt_required
+def removePlatform(id):
     try:
         platform = Platforms.get(Platforms.id == id)
     except Platforms.DoesNotExist:
@@ -238,6 +242,34 @@ def remotePlatform(id):
     if path != "":
         shutil.rmtree(path)
         return Response.make_success_resp(msg="Platform Has been removed")
+
+
+@platform_crud.route('/platform/get/<uid>', methods=['get'])
+@jwt_required
+def getPlatforms(uid):
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except:
+        return Response.make_error_resp(msg="Error reading database", code=500)
+
+    response = []
+    platformQuery = Platforms.select(Platforms.name, Platforms.id, Platforms.cloudService, Platforms.ipAddress).where(Platforms.uid == user.uid)
+    for platform in platformQuery:
+        plat = {
+            "name": platform.name,
+            "id" : platform.id,
+            "ip" : platform.ipAddress,
+            "cloudService" : platform.cloudService
+        }
+        response.append(plat)
+
+    res = {
+        "platforms": response
+    }
+    return Response.make_json_response(res)
 
 
 # ==============Helper Functions=============#
