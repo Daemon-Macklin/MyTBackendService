@@ -244,7 +244,7 @@ def removePlatform(id):
         return Response.make_success_resp(msg="Platform Has been removed")
 
 
-@platform_crud.route('/platform/get/<uid>', methods=['get'])
+@platform_crud.route('/platforms/get/<uid>', methods=['get'])
 @jwt_required
 def getPlatforms(uid):
 
