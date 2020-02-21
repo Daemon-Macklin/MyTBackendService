@@ -158,10 +158,6 @@ def createPlatform():
 
     isUp = serverCheck(output["instance_ip_address"]["value"])
 
-    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
-                                   cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
-                                   id=str(uuid.uuid4()))
-
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
@@ -169,6 +165,10 @@ def createPlatform():
 
     print(output)
     print(error)
+
+    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
+                                   cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
+                                   id=str(uuid.uuid4()))
 
     try:
         platform = Platforms.get(Platforms.id == newPlatform.id)
