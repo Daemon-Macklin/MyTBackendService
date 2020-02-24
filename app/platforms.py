@@ -34,9 +34,10 @@ database
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
 def createPlatform():
-    data = request.json
+    data = dict(request.form)
+    script = request.files['script']
     externalVolume = None
-    print(data)
+
     if 'platformName' in data:
         platformName = data["platformName"]
     else:
@@ -121,12 +122,14 @@ def createPlatform():
     validPlatforms = ["aws", "openstack"]
     if cloudService not in validPlatforms:
         return Response.make_error_resp(msg="invalid cloudService", code=400)
+
     tfPath = ""
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
         externalVolume = "/dev/nvme1n1"
         varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
                                              accessKey, safePlaformName, platformPath)
+
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
@@ -135,6 +138,9 @@ def createPlatform():
     ansiblePath = os.path.join(platformPath, "ansible")
 
     shutil.copytree(createAnsibleFiles, ansiblePath)
+
+    if script:
+        script.save(os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dataProcessing.py"))
 
     ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath)
 
@@ -161,10 +167,10 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
-    output, error = ab.configServer(output["instance_ip_address"]["value"], privateKey, ansiblePath)
+    aboutput, aberror = ab.configServer(output["instance_ip_address"]["value"], privateKey, ansiblePath)
 
-    print(output)
-    print(error)
+    print(aboutput)
+    print(aberror)
 
     newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],

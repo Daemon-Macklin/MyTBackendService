@@ -31,6 +31,11 @@
     src: "../templates/dockerComposeFiles/{{ database }}.yml"
     dest: /opt/MyTApplication/docker-compose.yml
 
+- name: Upload influxdb setup script
+  copy:
+    src: "../templates/setupScripts/{{ database }}.py"
+    dest: /opt/MyTApplication/dbSetup.py
+
 - name: Set Ownership of application to ubuntu
   file:
     path: /opt/MyTApplication
@@ -38,7 +43,6 @@
     recurse: yes
     owner: ubuntu
     group: ubuntu
-
 
 - name: Build Data Processing Docker image from Dockerfile
   docker_image:
@@ -58,18 +62,8 @@
     name: influxdb
   when: database == "influxdb"
 
-- name: Upload influxdb setup script
-  copy:
-    src: "../templates/setupScripts/{{ database }}.py"
-    dest: /opt/MyTApplication/dbSetup.py
-
-- name: Make influx setup script executable
-  file:
-    path: /opt/MyTApplication/dbSetup.py
-    mode: a+x
-
 - name: Run the influx setup script
-  command: /opt/MyTApplication/dbSetup.py
+  command: python3 /opt/MyTApplication/dbSetup.py
 
 - name: Remove influxsetup script
   file:
