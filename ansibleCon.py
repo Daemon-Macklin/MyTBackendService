@@ -3,7 +3,7 @@ import configparser
 import os
 
 # Function to launch server configuration ansible playbook
-def configServer(floatingIp, privateKey, ansiblePath):
+def runPlaybook(floatingIp, privateKey, ansiblePath):
     # Get the path of the inventory file
     inventoryPath = ansiblePath + "/inventory"
     keyPath = ansiblePath + "/id_rsa"

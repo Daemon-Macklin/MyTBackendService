@@ -30,6 +30,7 @@ User id
 rabbitmq username
 rabbitmq password
 database
+data processing script
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -172,7 +173,7 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
-    aboutput, aberror = ab.configServer(output["instance_ip_address"]["value"], privateKey, ansiblePath)
+    aboutput, aberror = ab.runPlaybook(output["instance_ip_address"]["value"], privateKey, ansiblePath)
 
     print(aboutput)
     print(aberror)
@@ -281,6 +282,68 @@ def getPlatforms(uid):
         "platforms": response
     }
     return Response.make_json_response(res)
+
+
+"""
+Endpoint to update the data processing script in a platform
+takes in:
+uid
+password
+script
+platform id
+"""
+@platform_crud.route('/platforms/update/processing/<id>', methods=['post'])
+@jwt_required
+def updateDataProcessing(id):
+
+    try:
+        platform = Platforms.get(Platforms.id == id)
+    except Platforms.DoesNotExist:
+        return Response.make_error_resp(msg="Platform Not Found", code=400)
+
+    data = dict(request.form)
+
+    if 'script' in request.files:
+        script = request.files['script']
+    else:
+        return Response.make_error_resp(msg="Script not in request", code=400)
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp(msg="User ID is required", code=400)
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+
+    if 'password' in data:
+        password = data['password']
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is Incorrect", code=400)
+
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                          string=user.privateKey)
+
+    updateAnsibleFiles = "ansiblePlaybooks/updateProcessing"
+    ansiblePath = os.path.join(platform.dir, "ansible")
+
+    shutil.copytree(updateAnsibleFiles, ansiblePath)
+
+    script.save(os.path.join(ansiblePath, "roles", "dmacklin.updateProcessing", "templates", "dataProcessing.py"))
+
+    output, error  = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath)
+
+    print(output)
+    print(error)
+
+    return Response.make_success_resp(msg="Script updated")
+
+
 
 
 # ==============Helper Functions=============#
