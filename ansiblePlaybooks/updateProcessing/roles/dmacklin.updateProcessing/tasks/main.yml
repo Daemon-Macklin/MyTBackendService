@@ -33,4 +33,4 @@
     name: dataprocessing
     image: dataprocessing
     networks:
-      - name: mytapplication_myt-network
+      - name: myt-network

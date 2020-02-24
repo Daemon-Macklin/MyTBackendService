@@ -141,7 +141,7 @@ def createPlatform():
         externalVolume = "/dev/vdb"
 
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
-    ansiblePath = os.path.join(platformPath, "ansible")
+    ansiblePath = os.path.join(platformPath, "ansible", "createPlatform")
 
     shutil.copytree(createAnsibleFiles, ansiblePath)
 
@@ -173,7 +173,7 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
-    aboutput, aberror = ab.runPlaybook(output["instance_ip_address"]["value"], privateKey, ansiblePath)
+    aboutput, aberror = ab.runPlaybook(output["instance_ip_address"]["value"], privateKey, ansiblePath, "installService")
 
     print(aboutput)
     print(aberror)
@@ -256,7 +256,7 @@ def removePlatform(id):
         return Response.make_success_resp(msg="Platform Has been removed")
 
 
-@platform_crud.route('/platforms/get/<uid>', methods=['get'])
+@platform_crud.route('/platforms/get/<uid>', methods=['Get'])
 @jwt_required
 def getPlatforms(uid):
 
@@ -292,7 +292,7 @@ password
 script
 platform id
 """
-@platform_crud.route('/platforms/update/processing/<id>', methods=['post'])
+@platform_crud.route('/platforms/update/processing/<id>', methods=['Post'])
 @jwt_required
 def updateDataProcessing(id):
 
@@ -330,13 +330,14 @@ def updateDataProcessing(id):
                                           string=user.privateKey)
 
     updateAnsibleFiles = "ansiblePlaybooks/updateProcessing"
-    ansiblePath = os.path.join(platform.dir, "ansible")
+
+    ansiblePath = os.path.join(platform.dir, "ansible", "updatePlatform")
 
     shutil.copytree(updateAnsibleFiles, ansiblePath)
 
     script.save(os.path.join(ansiblePath, "roles", "dmacklin.updateProcessing", "templates", "dataProcessing.py"))
 
-    output, error  = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath)
+    output, error  = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "updateProcessing")
 
     print(output)
     print(error)

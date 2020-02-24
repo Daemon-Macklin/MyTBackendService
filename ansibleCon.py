@@ -3,7 +3,7 @@ import configparser
 import os
 
 # Function to launch server configuration ansible playbook
-def runPlaybook(floatingIp, privateKey, ansiblePath):
+def runPlaybook(floatingIp, privateKey, ansiblePath, playbooknName):
     # Get the path of the inventory file
     inventoryPath = ansiblePath + "/inventory"
     keyPath = ansiblePath + "/id_rsa"
@@ -21,7 +21,8 @@ def runPlaybook(floatingIp, privateKey, ansiblePath):
     os.chmod(keyPath, 0o600)
 
     # Run the ansible-playbook command
-    executeCommand = "ansible-playbook -i inventory installService.yml -e 'ansible_python_interpreter=/usr/bin/python3'"
+    executeCommand = "ansible-playbook -i inventory " + playbooknName + ".yml  -e 'ansible_python_interpreter=/usr/bin/python3'"
+    print(executeCommand)
     process = subprocess.Popen(executeCommand.split(), stdout=subprocess.PIPE, cwd=ansiblePath)
     output, error = process.communicate()
 
