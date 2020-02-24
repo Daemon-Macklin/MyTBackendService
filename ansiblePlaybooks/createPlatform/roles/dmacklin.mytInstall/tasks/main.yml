@@ -46,7 +46,7 @@
 
 - name: Build Data Processing Docker image from Dockerfile
   docker_image:
-    name: myt-processing
+    name: dataprocessing
     build:
       path: /opt/MyTApplication
     state: present

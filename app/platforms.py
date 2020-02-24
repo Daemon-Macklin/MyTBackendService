@@ -35,7 +35,12 @@ database
 @jwt_required
 def createPlatform():
     data = dict(request.form)
-    script = request.files['script']
+
+    if 'script' in request.files:
+        script = request.files['script']
+    else:
+        script = None
+
     externalVolume = None
 
     if 'platformName' in data:
