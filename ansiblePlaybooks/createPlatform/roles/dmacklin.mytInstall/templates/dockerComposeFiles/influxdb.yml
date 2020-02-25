@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 services:
   influxdb:
     image: influxdb
@@ -22,7 +22,8 @@ services:
       #- RABBITMQ_DEFAULT_PASS=guest
     container_name: rabbitmq
   dataprocessing:
-    image: myt-processing
+    build: .
+    image: dataprocessing
     networks:
       - myt-network
     depends_on:
@@ -39,4 +40,5 @@ services:
     container_name: grafana
 networks:
   myt-network:
+    name: myt-network
     driver: bridge

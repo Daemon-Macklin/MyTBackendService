@@ -3,7 +3,7 @@ import configparser
 import os
 
 # Function to launch server configuration ansible playbook
-def configServer(floatingIp, privateKey, ansiblePath):
+def runPlaybook(floatingIp, privateKey, ansiblePath, playbooknName):
     # Get the path of the inventory file
     inventoryPath = ansiblePath + "/inventory"
     keyPath = ansiblePath + "/id_rsa"
@@ -21,7 +21,8 @@ def configServer(floatingIp, privateKey, ansiblePath):
     os.chmod(keyPath, 0o600)
 
     # Run the ansible-playbook command
-    executeCommand = "ansible-playbook -i inventory installService.yml -e 'ansible_python_interpreter=/usr/bin/python3'"
+    executeCommand = "ansible-playbook -i inventory " + playbooknName + ".yml  -e 'ansible_python_interpreter=/usr/bin/python3'"
+    print(executeCommand)
     process = subprocess.Popen(executeCommand.split(), stdout=subprocess.PIPE, cwd=ansiblePath)
     output, error = process.communicate()
 
@@ -80,3 +81,16 @@ def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
     # and write everything back
     with open(dcPath, 'w') as file:
         file.writelines(data)
+
+
+def generateRequirementsFile(packages, ansilbePath, roleName):
+
+    string = ""
+    for package in packages:
+        string = string + package + "\n"
+
+    path = os.path.join(ansilbePath, "roles", roleName, "templates", "requirements.txt")
+
+    f = open(path, "w+")
+    f.write(string)
+    f.close()

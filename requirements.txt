@@ -1,7 +1,8 @@
 flask
+flask_cors
 python_terraform
 ansible
 peewee
-Flask-JWT
+flask_jwt_extended
 passlib
 cryptography

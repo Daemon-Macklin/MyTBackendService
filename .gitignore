@@ -7,5 +7,5 @@ variables.tf
 platforms/*
 .terraform/
 *.retry
-config.py
+app/config.py
 venv/
