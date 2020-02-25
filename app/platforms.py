@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+import requests
 import response as Response
 import terraform as tf
 import ansibleCon as ab
@@ -31,6 +32,7 @@ rabbitmq username
 rabbitmq password
 database
 data processing script
+list of packages
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -94,6 +96,18 @@ def createPlatform():
             return Response.make_error_resp(msg="Invalid database", code=400)
     else:
         return Response.make_error_resp(msg="Database is required", code=400)
+
+    if 'packages' in data:
+        packages = data['packages'].split(",")
+    else:
+        packages = []
+
+    print(packages)
+
+    if len(packages) != 0:
+        issue = checkPackages(packages)
+        if issue != "":
+            return Response.make_error_resp(msg=issue + " Package not valid", code=400)
 
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
@@ -204,6 +218,7 @@ platform id
 @platform_crud.route('/platform/remove/<id>', methods=['Post'])
 @jwt_required
 def removePlatform(id):
+
     try:
         platform = Platforms.get(Platforms.id == id)
     except Platforms.DoesNotExist:
@@ -364,3 +379,12 @@ def serverCheck(floating_ip):
             counter += 1
 
     return isUp
+
+def checkPackages(packages):
+
+    for package in packages:
+        response = requests.get("https://pypi.python.org/pypi/{}/json".format(package))
+        if response.status_code != 200:
+            return package
+
+    return ""
