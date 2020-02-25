@@ -20,6 +20,11 @@
     src: ../templates/dataProcessing.py
     dest: /opt/MyTApplication/dataProcessing.py
 
+- name: Configure requirements
+  copy:
+    src: ../templates/requirements.txt
+    dest: /opt/MyTApplication/requirements.txt
+
 - name: Build Data Processing Docker image from Dockerfile
   docker_image:
     name: dataprocessing

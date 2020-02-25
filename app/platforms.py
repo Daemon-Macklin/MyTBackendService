@@ -98,7 +98,7 @@ def createPlatform():
         return Response.make_error_resp(msg="Database is required", code=400)
 
     if 'packages' in data:
-        packages = data['packages'].split(",")
+        packages = data['packages'].replace(" ", "").split(",")
     else:
         packages = []
 
@@ -166,7 +166,7 @@ def createPlatform():
 
     ab.generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath)
 
-    ab.generateRequirementsFile(packages, ansiblePath)
+    ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.mytInstall")
 
     requiredFiles = ["deploy.tf", "provider.tf"]
 
@@ -308,6 +308,7 @@ uid
 password
 script
 platform id
+list of packages
 """
 @platform_crud.route('/platforms/update/processing/<id>', methods=['Post'])
 @jwt_required
@@ -340,6 +341,20 @@ def updateDataProcessing(id):
     else:
         return Response.make_error_resp(msg="Password is required", code=400)
 
+    if 'packages' in data:
+        packages = data['packages'].replace(" ", "").split(",")
+    else:
+        packages = []
+
+    if len(packages) != 0:
+        issue = checkPackages(packages)
+        if issue != "":
+            return Response.make_error_resp(msg=issue + " Package not valid", code=400)
+
+    exsistingPackages = platform.packageList.split(",")
+    packages = exsistingPackages + packages + ["pika==1.1.0", "influxdb", "pymongo"]
+
+
     if not pbkdf2_sha256.verify(password, user.password):
         return Response.make_error_resp(msg="Password is Incorrect", code=400)
 
@@ -350,9 +365,14 @@ def updateDataProcessing(id):
 
     ansiblePath = os.path.join(platform.dir, "ansible", "updatePlatform")
 
+    if os.path.exists(ansiblePath):
+        shutil.rmtree(ansiblePath)
+
     shutil.copytree(updateAnsibleFiles, ansiblePath)
 
     script.save(os.path.join(ansiblePath, "roles", "dmacklin.updateProcessing", "templates", "dataProcessing.py"))
+
+    ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.updateProcessing")
 
     output, error  = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "updateProcessing")
 

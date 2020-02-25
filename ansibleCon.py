@@ -83,13 +83,13 @@ def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
         file.writelines(data)
 
 
-def generateRequirementsFile(list, ansilbePath):
+def generateRequirementsFile(packages, ansilbePath, roleName):
 
     string = ""
-    for package in list:
+    for package in packages:
         string = string + package + "\n"
 
-    path = os.path.join(ansilbePath, "roles", "dmacklin.mytInstall", "templates", "requirements.txt")
+    path = os.path.join(ansilbePath, "roles", roleName, "templates", "requirements.txt")
 
     f = open(path, "w+")
     f.write(string)

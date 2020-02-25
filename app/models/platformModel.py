@@ -18,5 +18,5 @@ class Platforms(BaseModel):
     sid = CharField()
     cloudService = CharField()
     ipAddress = CharField()
-    packageList = BlobField()
+    packageList = TextField()
     id = UUIDField(unique=True, primary_key=True)
