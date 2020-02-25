@@ -81,3 +81,16 @@ def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
     # and write everything back
     with open(dcPath, 'w') as file:
         file.writelines(data)
+
+
+def generateRequirementsFile(list, ansilbePath):
+
+    string = ""
+    for package in list:
+        string = string + package + "\n"
+
+    path = os.path.join(ansilbePath, "roles", "dmacklin.mytInstall", "templates", "requirements.txt")
+
+    f = open(path, "w+")
+    f.write(string)
+    f.close()

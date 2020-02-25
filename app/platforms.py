@@ -102,12 +102,12 @@ def createPlatform():
     else:
         packages = []
 
-    print(packages)
-
     if len(packages) != 0:
         issue = checkPackages(packages)
         if issue != "":
             return Response.make_error_resp(msg=issue + " Package not valid", code=400)
+
+    packages = packages + ["pika==1.1.0", "influxdb", "pymongo"]
 
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
@@ -166,6 +166,8 @@ def createPlatform():
 
     ab.generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath)
 
+    ab.generateRequirementsFile(packages, ansiblePath)
+
     requiredFiles = ["deploy.tf", "provider.tf"]
 
     for file in requiredFiles:
@@ -194,7 +196,7 @@ def createPlatform():
 
     newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
-                                   id=str(uuid.uuid4()))
+                                   packageList=data['packages'], id=str(uuid.uuid4()))
 
     try:
         platform = Platforms.get(Platforms.id == newPlatform.id)

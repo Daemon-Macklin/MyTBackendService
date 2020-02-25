@@ -15,6 +15,11 @@
     src: ../templates/dataProcessing.py
     dest: /opt/MyTApplication/dataProcessing.py
 
+- name: Configure data requirements.txt
+  copy:
+    src: ../templates/requirements.txt
+    dest: /opt/MyTApplication/requirements.txt
+
 - name: Configure config file
   copy:
     src: ../templates/config.ini
