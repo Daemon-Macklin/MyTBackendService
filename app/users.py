@@ -28,10 +28,6 @@ password
 @users.route('users/create', methods=["Post"])
 def createUser():
 
-    # Create the database tables if they don't already exist.
-    db.connect()
-    db.create_tables([Users, SpaceAWS, AWSCreds, OpenstackCreds, Platforms])
-
     data = request.json
 
     # Verify data

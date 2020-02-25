@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from app import EXPORT_BLUEPRINTS
 from flask_jwt_extended import JWTManager
+import app.models.dbSetup as db
 
 # Create app
 def createApp():
@@ -13,6 +14,8 @@ def createApp():
 
     for bluePrint in EXPORT_BLUEPRINTS:
         app.register_blueprint(bluePrint)
+
+    db.init()
 
     return app
 
