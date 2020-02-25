@@ -15,6 +15,32 @@
     src: ../templates/dataProcessing.py
     dest: /opt/MyTApplication/dataProcessing.py
 
+- name: Configure data requirements.txt
+  copy:
+    src: ../templates/requirements.txt
+    dest: /opt/MyTApplication/requirements.txt
+
+- name: Configure config file
+  copy:
+    src: ../templates/config.ini
+    dest: /opt/MyTApplication/config.ini
+
+- name: Configure database connector
+  copy:
+    src: "/opt/MyTApplication/databaseLibs/{{ database }}.py"
+    dest: /opt/MyTApplication/database.py
+    remote_src: yes
+
+- name: Configure docker-compose.yml file
+  copy:
+    src: "../templates/dockerComposeFiles/{{ database }}.yml"
+    dest: /opt/MyTApplication/docker-compose.yml
+
+- name: Upload influxdb setup script
+  copy:
+    src: "../templates/setupScripts/{{ database }}.py"
+    dest: /opt/MyTApplication/dbSetup.py
+
 - name: Set Ownership of application to ubuntu
   file:
     path: /opt/MyTApplication
@@ -25,7 +51,7 @@
 
 - name: Build Data Processing Docker image from Dockerfile
   docker_image:
-    name: myt-processing
+    name: dataprocessing
     build:
       path: /opt/MyTApplication
     state: present
@@ -39,21 +65,12 @@
 - name: Install docker-py
   pip:
     name: influxdb
-
-- name: Upload influxdb setup script
-  copy:
-    src: ../templates/influxsetup.py
-    dest: /opt/MyTApplication/influxsetup.py
-
-- name: Make influx setup script executable
-  file:
-    path: /opt/MyTApplication/influxsetup.py
-    mode: a+x
+  when: database == "influxdb"
 
 - name: Run the influx setup script
-  command: /opt/MyTApplication/influxsetup.py
+  command: python3 /opt/MyTApplication/dbSetup.py
 
 - name: Remove influxsetup script
   file:
-    path: /opt/MyTApplication/influxsetup.py
+    path: /opt/MyTApplication/dbSetup.py
     state: absent

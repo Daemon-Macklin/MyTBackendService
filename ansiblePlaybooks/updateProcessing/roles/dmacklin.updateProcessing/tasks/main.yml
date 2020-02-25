@@ -1,0 +1,41 @@
+---
+
+- name: Stop Data processing container
+  docker_container:
+    name: dataprocessing
+    state: stopped
+
+- name: Kill Data processing container
+  docker_container:
+    name: dataprocessing
+    state: absent
+
+- name: Remove Docker Container
+  docker_image:
+    state: absent
+    name: dataprocessing
+
+- name: Configure data processing script
+  copy:
+    src: ../templates/dataProcessing.py
+    dest: /opt/MyTApplication/dataProcessing.py
+
+- name: Configure requirements
+  copy:
+    src: ../templates/requirements.txt
+    dest: /opt/MyTApplication/requirements.txt
+
+- name: Build Data Processing Docker image from Dockerfile
+  docker_image:
+    name: dataprocessing
+    build:
+      path: /opt/MyTApplication
+    state: present
+    source: build
+
+- name: Start new container
+  docker_container:
+    name: dataprocessing
+    image: dataprocessing
+    networks:
+      - name: myt-network

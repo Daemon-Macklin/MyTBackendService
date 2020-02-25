@@ -3,6 +3,7 @@
   vars:
     cloudService: 'aws'
     externalVol: '/dev/nvme1n1'
+    database: 'influx'
   become: yes
   roles:
   - role: dmacklin.machineSetup

@@ -1,0 +1,44 @@
+version: '3.5'
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - myt-network
+    container_name: mongodb
+    volumes:
+      - /var/lib/mytDatabase:/var/lib/mongodb
+  broker:
+    image: rabbitmq
+    hostname: rabbitmq
+    networks:
+      - myt-network
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    #environment:
+      #- RABBITMQ_DEFAULT_USER=guest
+      #- RABBITMQ_DEFAULT_PASS=guest
+    container_name: rabbitmq
+  dataprocessing:
+    build: .
+    image: dataprocessing
+    networks:
+      - myt-network
+    depends_on:
+      - broker
+      - mongodb
+    restart: on-failure
+    container_name: dataprocessing
+  grafana:
+    image: grafana/grafana
+    networks:
+      - myt-network
+    ports:
+      - "3000:3000"
+    container_name: grafana
+networks:
+  myt-network:
+    name: myt-network
+    driver: bridge

@@ -1,0 +1,56 @@
+# Pull base image.
+FROM ubuntu:latest
+
+RUN \
+# Update
+apt-get update -y && \
+# Install Unzip
+apt-get install unzip -y && \
+# need wget
+apt-get install wget -y && \
+# vim
+apt-get install vim -y && \
+# ping
+apt-get install iputils-ping -y && \
+# ssh
+apt-get install openssh-server -y && \
+# sqlite
+apt-get install sqlite3
+
+################################
+# Install Terraform
+################################
+
+# Download terraform for linux
+RUN wget https://releases.hashicorp.com/terraform/0.12.20/terraform_0.12.20_linux_amd64.zip
+
+# Unzip
+RUN unzip terraform_0.12.20_linux_amd64.zip
+
+# Move to local bin
+RUN mv terraform /usr/local/bin/
+# Check that it's installed
+RUN terraform --version 
+
+################################
+# Install python
+################################
+
+RUN apt-get install -y python3-pip
+#RUN ln -s /usr/bin/python3 python
+RUN pip3 install --upgrade pip
+RUN python3 -V
+RUN pip --version
+
+################################
+# Install Service
+################################
+
+COPY . /app
+RUN pip3 install -r /app/requirements.txt
+WORKDIR /app
+CMD python3 /app/api.py
+
+
+
+
