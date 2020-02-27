@@ -16,6 +16,7 @@ import time
 import uuid
 import shutil
 from flask_jwt_extended import jwt_required
+import datetime
 
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
@@ -196,7 +197,7 @@ def createPlatform():
 
     newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
-                                   packageList=data['packages'], id=str(uuid.uuid4()))
+                                   packageList=data['packages'], database=database, id=str(uuid.uuid4()))
 
     try:
         platform = Platforms.get(Platforms.id == newPlatform.id)
@@ -381,7 +382,58 @@ def updateDataProcessing(id):
 
     return Response.make_success_resp(msg="Script updated")
 
+"""
+Endpoint to update the data processing script in a platform
+takes in:
+uid
+password
+platform id
+"""
+@platform_crud.route('/platforms/database/dump/<id>', methods=['Post'])
+@jwt_required
+def databaseDump(id):
 
+    try:
+        platform = Platforms.get(Platforms.id == id)
+    except Platforms.DoesNotExist:
+        return Response.make_error_resp(msg="Platform Not Found", code=400)
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp(msg="User ID is required", code=400)
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+
+    if 'password' in data:
+        password = data['password']
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is Incorrect", code=400)
+
+    database = platform.database
+
+    dumpPath = platform.dir + database + datetime.datetime.now()
+
+    if database == "influxdb":
+        command = ""
+    elif database == "mongodb":
+        command = "mongodump --host " + platform.ipAddress + " -d development --port 27017 --out " + dumpPath
+    else:
+        return Response.make_error_resp(msg="Invalid Database", code=400)
+
+    print(command)
+    process = subprocess.Popen(executeCommand.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+
+    print(output)
+    print(error)
+    
 
 
 # ==============Helper Functions=============#
