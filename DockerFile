@@ -19,7 +19,7 @@ apt-get install sqlite3 -y && \
 # Mongodb Client
 apt-get install mongodb-clients -y && \
 # InfluxDB Client
-apt-get install influxdb-clients -y
+apt-get install influxdb-client -y
 
 ################################
 # Install Terraform

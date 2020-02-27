@@ -393,6 +393,7 @@ platform id
 @jwt_required
 def databaseDump(id):
 
+    data = request.json
     try:
         platform = Platforms.get(Platforms.id == id)
     except Platforms.DoesNotExist:
@@ -423,7 +424,7 @@ def databaseDump(id):
     if database == "influxdb":
         command = ""
     elif database == "mongodb":
-        command = "mongodump --host " + platform.ipAddress + " -d development --port 27017 --out " + dumpPath
+        command = "mongodump --host " + platform.ipAddress + " -d MyTData --port 27017 --out " + dumpPath
     else:
         return Response.make_error_resp(msg="Invalid Database", code=400)
 
@@ -433,7 +434,7 @@ def databaseDump(id):
 
     print(output)
     print(error)
-    
+
 
 
 # ==============Helper Functions=============#
