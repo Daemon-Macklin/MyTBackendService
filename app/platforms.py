@@ -17,6 +17,7 @@ import uuid
 import shutil
 from flask_jwt_extended import jwt_required
 import datetime
+import subprocess
 
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
@@ -418,22 +419,42 @@ def databaseDump(id):
         return Response.make_error_resp(msg="Password is Incorrect", code=400)
 
     database = platform.database
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                          string=user.privateKey)
 
-    dumpPath = platform.dir + database + datetime.datetime.now()
+    keyPath = os.path.join(platform.dir, "id_rsa")
 
     if database == "influxdb":
         command = ""
     elif database == "mongodb":
-        command = "mongodump --host " + platform.ipAddress + " -d MyTData --port 27017 --out " + dumpPath
+        command = "mongodump --forceTableScan -d MyTData --out ./" + str(platform.id)
     else:
         return Response.make_error_resp(msg="Invalid Database", code=400)
 
-    print(command)
-    process = subprocess.Popen(executeCommand.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
+    zipCommand = "zip " + str(platform.id) + ".zip " + str(platform.id)
+    # Open the private key file and add the private key
+    f = open(keyPath, "w+")
+    f.write(privateKey)
+    f.close()
 
-    print(output)
-    print(error)
+    os.chmod(keyPath, 0o600)
+
+    sshGenerateDump = "ssh -t -o StrictHostKeyChecking=no -i " + keyPath + " ubuntu@" + platform.ipAddress + " '" + \
+                      command + " && " + zipCommand + " '"
+    scpGetDump = "scp -i " + keyPath + " ubuntu@" + platform.ipAddress + ":~/" + str(platform.id) + ".zip " +\
+                      platform.dir
+    sshRemoveDump = "ssh -t -o StrictHostKeyChecking=no -i " + keyPath + " ubuntu@" + platform.ipAddress + " 'rm " + \
+                    str(platform.id) + ".zip'"
+
+    try:
+        subprocess.run(sshGenerateDump , check=True, shell=True)
+        subprocess.run(scpGetDump, check=True, shell=True)
+        subprocess.run(sshRemoveDump, check=True, shell=True)
+    except Exception as e:
+        print(e)
+        return Response.make_error_resp(msg="Error Creating Dump", code=400)
+
+    return Response.make_success_resp("Got it")
 
 
 

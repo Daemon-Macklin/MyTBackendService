@@ -19,6 +19,7 @@ def create(pathToInf):
     # Get the outputs from the apply
     outputs = terra.output()
 
+    print(outputs)
     # Return the outputs
     return outputs, return_code
 
