@@ -94,3 +94,18 @@ def generateRequirementsFile(packages, ansilbePath, roleName):
     f = open(path, "w+")
     f.write(string)
     f.close()
+
+def updateDBDumpVars(database, ansiblePath):
+
+    ansiblePath = os.path.join(ansiblePath, "dbDump.yml")
+
+    with open(ansiblePath, 'r') as file:
+        # read a list of lines into data
+        data = file.readlines()
+
+    # Update Vars
+    data[3] =  "    database: '" + database + "'\n"
+
+    # and write everything back
+    with open(ansiblePath, 'w') as file:
+        file.writelines(data)

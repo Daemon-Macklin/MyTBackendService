@@ -376,7 +376,7 @@ def updateDataProcessing(id):
 
     ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.updateProcessing")
 
-    output, error  = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "updateProcessing")
+    output, error = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "updateProcessing")
 
     print(output)
     print(error)
@@ -422,39 +422,23 @@ def databaseDump(id):
     privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                           string=user.privateKey)
 
-    keyPath = os.path.join(platform.dir, "id_rsa")
+    dumpAnsibleFiles = "ansiblePlaybooks/dataBaseDump"
 
-    if database == "influxdb":
-        command = ""
-    elif database == "mongodb":
-        command = "mongodump --forceTableScan -d MyTData --out ./" + str(platform.id)
-    else:
-        return Response.make_error_resp(msg="Invalid Database", code=400)
+    ansiblePath = os.path.join(platform.dir, "ansible", "dataBaseDump")
 
-    zipCommand = "zip " + str(platform.id) + ".zip " + str(platform.id)
-    # Open the private key file and add the private key
-    f = open(keyPath, "w+")
-    f.write(privateKey)
-    f.close()
+    if os.path.exists(ansiblePath):
+        shutil.rmtree(ansiblePath)
 
-    os.chmod(keyPath, 0o600)
+    shutil.copytree(dumpAnsibleFiles, ansiblePath)
 
-    sshGenerateDump = "ssh -t -o StrictHostKeyChecking=no -i " + keyPath + " ubuntu@" + platform.ipAddress + " '" + \
-                      command + " && " + zipCommand + " '"
-    scpGetDump = "scp -i " + keyPath + " ubuntu@" + platform.ipAddress + ":~/" + str(platform.id) + ".zip " +\
-                      platform.dir
-    sshRemoveDump = "ssh -t -o StrictHostKeyChecking=no -i " + keyPath + " ubuntu@" + platform.ipAddress + " 'rm " + \
-                    str(platform.id) + ".zip'"
+    ab.updateDBDumpVars(database, ansiblePath)
 
-    try:
-        subprocess.run(sshGenerateDump , check=True, shell=True)
-        subprocess.run(scpGetDump, check=True, shell=True)
-        subprocess.run(sshRemoveDump, check=True, shell=True)
-    except Exception as e:
-        print(e)
-        return Response.make_error_resp(msg="Error Creating Dump", code=400)
+    output, error = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "dbDump")
 
-    return Response.make_success_resp("Got it")
+    print(output)
+    print(error)
+
+    return Response.make_success_resp("File downloaded...hopefully")
 
 
 

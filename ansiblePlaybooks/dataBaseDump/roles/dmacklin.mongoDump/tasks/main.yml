@@ -1,0 +1,18 @@
+--- 
+
+- name: Generate Dump
+  command: docker exec mongo mongodump --forceTableScan -d MyTData --out /mongodump
+
+- name: Get Dump
+  command: docker cp mongo:/mongodump ~/mongodump
+ 
+- name: Zip File
+  archive:
+    path: ~/mongodump
+    format: zip
+    remove: yes
+
+- name: downoad zip
+  fetch:
+    src: ~/mongodump.zip
+    dest: ./
