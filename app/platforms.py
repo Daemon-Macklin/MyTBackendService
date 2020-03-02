@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 import requests
 import response as Response
 import terraform as tf
@@ -438,11 +438,23 @@ def databaseDump(id):
     print(output)
     print(error)
 
-    return Response.make_success_resp("File downloaded...hopefully")
+    filename = ""
+    dumpPath = ""
+    if database == "influxdb":
+        filename = "influxdump.zip"
+        dumpPath = os.path.join(ansiblePath, filename)
+    elif database == "mongodb":
+        filename =  "mongodump.zip"
+        dumpPath = os.path.join(ansiblePath, filename)
+
+    try:
+        return send_file(dumpPath,attachment_filename=filename, as_attachment=True, mimetype="application/zip")
+    except Exception as e:
+        print(e)
+        return Response.make_error_resp("Error Getting Dump", code=400)
 
 
-
-# ==============Helper Functions=============#
+#==============Helper Functions==============#
 
 def serverCheck(floating_ip):
     counter = 0

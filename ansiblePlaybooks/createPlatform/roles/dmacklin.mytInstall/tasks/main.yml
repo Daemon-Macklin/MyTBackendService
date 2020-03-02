@@ -67,7 +67,7 @@
     name: influxdb
   when: database == "influxdb"
 
-- name: Run the influx setup script
+- name: Run the db setup script
   command: python3 /opt/MyTApplication/dbSetup.py
 
 - name: Remove influxsetup script
