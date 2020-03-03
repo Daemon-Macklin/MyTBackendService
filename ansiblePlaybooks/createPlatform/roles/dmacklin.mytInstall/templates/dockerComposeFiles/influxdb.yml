@@ -9,6 +9,8 @@ services:
     container_name: influxdb
     volumes:
       - /var/lib/mytDatabase:/var/lib/influxdb
+    environment:
+      -  INFLUXDB_DB=MyTData
   broker:
     image: rabbitmq
     hostname: rabbitmq

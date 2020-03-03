@@ -36,11 +36,6 @@
     src: "../templates/dockerComposeFiles/{{ database }}.yml"
     dest: /opt/MyTApplication/docker-compose.yml
 
-- name: Upload influxdb setup script
-  copy:
-    src: "../templates/setupScripts/{{ database }}.py"
-    dest: /opt/MyTApplication/dbSetup.py
-
 - name: Set Ownership of application to ubuntu
   file:
     path: /opt/MyTApplication
@@ -61,16 +56,3 @@
   docker_compose:
     project_src: /opt/MyTApplication
   register: output
-
-- name: Install docker-py
-  pip:
-    name: influxdb
-  when: database == "influxdb"
-
-- name: Run the db setup script
-  command: python3 /opt/MyTApplication/dbSetup.py
-
-- name: Remove influxsetup script
-  file:
-    path: /opt/MyTApplication/dbSetup.py
-    state: absent

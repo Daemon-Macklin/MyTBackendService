@@ -9,6 +9,8 @@ services:
     container_name: mongodb
     volumes:
       - /var/lib/mytDatabase:/var/lib/mongodb
+    environment:
+      - MONGO_INITDB_DATABASE=MyTData
   broker:
     image: rabbitmq
     hostname: rabbitmq

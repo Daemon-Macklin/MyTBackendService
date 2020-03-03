@@ -74,9 +74,9 @@ def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
         # read a list of lines into data
         data = file.readlines()
 
-    data[19] = "    environment: \n"
-    data[20] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
-    data[21] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
+    data[21] = "    environment: \n"
+    data[22] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
+    data[23] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
 
     # and write everything back
     with open(dcPath, 'w') as file:
