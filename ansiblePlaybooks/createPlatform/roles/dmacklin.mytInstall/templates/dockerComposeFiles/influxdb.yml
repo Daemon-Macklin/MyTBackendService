@@ -20,8 +20,13 @@ services:
       - "15672:15672"
       - "5672:5672"
     #environment:
+      #- RABBITMQ_SSL_CERTFILE=/cert_rabbitmq/cert.pem
+      #- RABBITMQ_SSL_KEYFILE=/cert_rabbitmq/key.pem
+      #- RABBITMQ_SSL_CACERTFILE=/cert_rabbitmq/cacert.pem
       #- RABBITMQ_DEFAULT_USER=guest
       #- RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - ./cert_rabbitmq:/cert_rabbitmq
     container_name: rabbitmq
   dataprocessing:
     build: .

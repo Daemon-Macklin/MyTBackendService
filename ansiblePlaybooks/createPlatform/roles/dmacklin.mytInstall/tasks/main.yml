@@ -10,6 +10,45 @@
     repo: https://github.com/Daemon-Macklin/MyTPlatformDataProcessingContainer
     dest: /opt/MyTApplication
 
+- name: Pull tls-gen repo
+  git:
+    repo: https://github.com/michaelklishin/tls-gen.git
+    dest: /opt/tls-gen
+  when: rabbitmqTLS == "true"
+
+- name: Generate tls keys
+  command: make
+  args:
+    chdir: /opt/tls-gen/basic
+  when: rabbitmqTLS == "true"
+
+- name: Create file for tls keys
+  file:
+    path: /opt/MyTApplication/cert_rabbitmq
+    state: directory
+  when: rabbitmqTLS == "true"
+
+- name: Get cert.pem
+  copy:
+    src: /opt/tls-gen/basic/client/cert.pem
+    dest: /opt/MyTApplication/cert_rabbitmq/cert.pem
+    remote_src: yes
+  when: rabbitmqTLS == "true"
+
+- name: Get key.pem
+  copy:
+    src: /opt/tls-gen/basic/client/key.pem
+    dest: /opt/MyTApplication/cert_rabbitmq/key.pem
+    remote_src: yes
+  when: rabbitmqTLS == "true"
+
+- name: Get cacert.pem
+  copy:
+    src: /opt/tls-gen/basic/testca/cacert.pem
+    dest: /opt/MyTApplication/cert_rabbitmq/cacert.pem
+    remote_src: yes
+  when: rabbitmqTLS == "true"
+
 - name: Configure data processing script
   copy:
     src: ../templates/dataProcessing.py

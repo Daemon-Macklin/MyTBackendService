@@ -32,6 +32,7 @@ Password
 User id
 rabbitmq username
 rabbitmq password
+rabbitmq tls
 database
 data processing script
 list of packages
@@ -90,6 +91,12 @@ def createPlatform():
         rabbitPass = data['rabbitPass']
     else:
         rabbitPass = ""
+
+    if "rabbitTLS" in data:
+        # Get string version of rabbitTLS flag as ansible is looking for a string
+        rabbitTLS = data['rabbitTLS']
+    else:
+        rabbitTLS = "false"
 
     if "database" in data:
         validDbs = ["influxdb", "mongodb"]
@@ -164,9 +171,9 @@ def createPlatform():
     if script:
         script.save(os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dataProcessing.py"))
 
-    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath)
+    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, ansiblePath)
 
-    ab.generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath)
+    ab.generateMyTConfig(rabbitUser, rabbitPass, rabbitTLS, database, ansiblePath)
 
     ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.mytInstall")
 
