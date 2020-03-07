@@ -51,6 +51,13 @@ resource "aws_security_group" "MyT-SG" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+    ingress {
+    from_port = 5671
+    protocol = "tcp"
+    to_port = 5671
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   ingress {
     from_port = 22
     protocol = "tcp"

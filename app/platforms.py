@@ -121,13 +121,13 @@ def createPlatform():
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
     except SpaceAWS.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Space", code=404)
+        return Response.make_error_resp(msg="Error Finding Space", code=400)
 
     # Get the aws creds object
     try:
         creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
     except AWSCreds.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Creds", code=404)
+        return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
     # Decrypt the user data
     secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
@@ -212,11 +212,20 @@ def createPlatform():
     except Platforms.DoesNotExist:
         return Response.make_error_resp(msg="Platform Not Found", code=400)
 
-    res = {
-        "id": platform.id,
-        "name": platform.name
-    }
-    return Response.make_json_response(res)
+    if rabbitTLS == "true":
+        filename = "cert_rabbitmq.zip"
+        dumpPath = os.path.join(ansiblePath, filename)
+        try:
+            return send_file(dumpPath, attachment_filename=filename, as_attachment=True, mimetype="application/zip")
+        except Exception as e:
+            print(e)
+            return Response.make_error_resp("Error Getting Certs", code=400)
+    else:
+        res = {
+            "id": platform.id,
+            "name": platform.name
+        }
+        return Response.make_data_resp(res)
 
 
 """

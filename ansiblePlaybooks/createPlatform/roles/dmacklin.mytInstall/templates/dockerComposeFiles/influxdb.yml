@@ -19,6 +19,7 @@ services:
     ports:
       - "15672:15672"
       - "5672:5672"
+      - "5671:5671"
     #environment:
       #- RABBITMQ_SSL_CERTFILE=/cert_rabbitmq/cert.pem
       #- RABBITMQ_SSL_KEYFILE=/cert_rabbitmq/key.pem

@@ -95,3 +95,22 @@
   docker_compose:
     project_src: /opt/MyTApplication
   register: output
+
+- name: Get Cert File
+  command: docker cp rabbitmq:/cert_rabbitmq ~/cert_rabbitmq
+  when: rabbitmqTLS == "true"
+
+- name: Zip Cert file
+  archive:
+    path: ~/cert_rabbitmq
+    dest: ~/cert_rabbitmq.zip
+    format: zip
+    remove: yes
+  when: rabbitmqTLS == "true"
+
+- name: downoad zip
+  fetch:
+    flat: yes
+    src: ~/cert_rabbitmq.zip
+    dest: ./cert_rabbitmq.zip
+  when: rabbitmqTLS == "true"
