@@ -1,0 +1,11 @@
+---
+- hosts: vms
+  vars:
+    database: "mongodb"
+  become: yes
+  roles:
+  - { role: dmacklin.mongoDump,
+    when: database == "mongodb"}
+  - { role: dmacklin.influxDump,
+    when: database == "influxdb"}
+

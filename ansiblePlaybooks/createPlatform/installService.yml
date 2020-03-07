@@ -4,6 +4,7 @@
     cloudService: 'aws'
     externalVol: '/dev/nvme1n1'
     database: 'influx'
+    rabbitmqTLS: 'false'
   become: yes
   roles:
   - role: dmacklin.machineSetup

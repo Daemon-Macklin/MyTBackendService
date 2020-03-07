@@ -19,4 +19,5 @@ class Platforms(BaseModel):
     cloudService = CharField()
     ipAddress = CharField()
     packageList = TextField()
+    database = TextField()
     id = UUIDField(unique=True, primary_key=True)

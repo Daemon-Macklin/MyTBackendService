@@ -32,7 +32,7 @@ def runPlaybook(floatingIp, privateKey, ansiblePath, playbooknName):
     # Return the output and error
     return "", ""
 
-def updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath):
+def updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, ansiblePath):
     # with is like your try .. finally block in this case
     with open(ansiblePath + "/installService.yml", 'r') as file:
         # read a list of lines into data
@@ -42,12 +42,13 @@ def updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePat
     data[3] = "    cloudService: '" + cloudService + "'\n"
     data[4] = "    externalVol: '" + externalVolume + "'\n"
     data[5] = "    database: '" + database + "' \n"
+    data[6] = "    rabbitmqTLS: '" + rabbitTLS + "' \n"
 
     # and write everything back
     with open(ansiblePath + "/installService.yml", 'w') as file:
         file.writelines(data)
 
-def generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath):
+def generateMyTConfig(rabbitUser, rabbitPass, rabbitTLS, database, ansiblePath):
 
     configPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "config.ini")
     # Create config parser object
@@ -56,10 +57,14 @@ def generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath):
     if rabbitUser != "" and rabbitPass != "":
         setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath)
 
+    if rabbitTLS == "true":
+        enableRabbitMQTLS(database, ansiblePath)
+
     # Generate config file data
     conf['rabbitmq'] = {
         'user': rabbitUser,
-        'password': rabbitPass
+        'password': rabbitPass,
+        'tlsEnabled': rabbitTLS
     }
 
     # Write data to file
@@ -74,9 +79,26 @@ def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
         # read a list of lines into data
         data = file.readlines()
 
-    data[19] = "    environment: \n"
-    data[20] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
-    data[21] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
+    data[22] = "    environment: \n"
+    data[26] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
+    data[27] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
+
+
+    # and write everything back
+    with open(dcPath, 'w') as file:
+        file.writelines(data)
+
+def enableRabbitMQTLS(database, ansiblePath):
+
+    dcPath = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dockerComposeFiles", database + ".yml")
+
+    with open(dcPath, 'r') as file:
+        # read a list of lines into data
+        data = file.readlines()
+    data[22] = "    environment: \n"
+    data[23] = "      - RABBITMQ_SSL_CERTFILE=/cert_rabbitmq/cert.pem\n"
+    data[24] = "      - RABBITMQ_SSL_KEYFILE=/cert_rabbitmq/key.pem\n"
+    data[25] = "      - RABBITMQ_SSL_CACERTFILE=/cert_rabbitmq/cacert.pem\n"
 
     # and write everything back
     with open(dcPath, 'w') as file:
@@ -94,3 +116,18 @@ def generateRequirementsFile(packages, ansilbePath, roleName):
     f = open(path, "w+")
     f.write(string)
     f.close()
+
+def updateDBDumpVars(database, ansiblePath):
+
+    ansiblePath = os.path.join(ansiblePath, "dbDump.yml")
+
+    with open(ansiblePath, 'r') as file:
+        # read a list of lines into data
+        data = file.readlines()
+
+    # Update Vars
+    data[3] =  "    database: '" + database + "'\n"
+
+    # and write everything back
+    with open(ansiblePath, 'w') as file:
+        file.writelines(data)

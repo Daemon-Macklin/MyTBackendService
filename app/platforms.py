@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 import requests
 import response as Response
 import terraform as tf
@@ -16,6 +16,8 @@ import time
 import uuid
 import shutil
 from flask_jwt_extended import jwt_required
+import datetime
+import subprocess
 
 
 platform_crud = Blueprint('platform_crud', __name__, url_prefix=URL_PREFIX)
@@ -30,6 +32,7 @@ Password
 User id
 rabbitmq username
 rabbitmq password
+rabbitmq tls
 database
 data processing script
 list of packages
@@ -89,6 +92,12 @@ def createPlatform():
     else:
         rabbitPass = ""
 
+    if "rabbitTLS" in data:
+        # Get string version of rabbitTLS flag as ansible is looking for a string
+        rabbitTLS = data['rabbitTLS']
+    else:
+        rabbitTLS = "false"
+
     if "database" in data:
         validDbs = ["influxdb", "mongodb"]
         database = data['database']
@@ -112,13 +121,13 @@ def createPlatform():
     try:
         space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
     except SpaceAWS.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Space", code=404)
+        return Response.make_error_resp(msg="Error Finding Space", code=400)
 
     # Get the aws creds object
     try:
         creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
     except AWSCreds.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Creds", code=404)
+        return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
     # Decrypt the user data
     secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
@@ -162,9 +171,9 @@ def createPlatform():
     if script:
         script.save(os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dataProcessing.py"))
 
-    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, ansiblePath)
+    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, ansiblePath)
 
-    ab.generateMyTConfig(rabbitUser, rabbitPass, database, ansiblePath)
+    ab.generateMyTConfig(rabbitUser, rabbitPass, rabbitTLS, database, ansiblePath)
 
     ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.mytInstall")
 
@@ -196,18 +205,27 @@ def createPlatform():
 
     newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
-                                   packageList=data['packages'], id=str(uuid.uuid4()))
+                                   packageList=data['packages'], database=database, id=str(uuid.uuid4()))
 
     try:
         platform = Platforms.get(Platforms.id == newPlatform.id)
     except Platforms.DoesNotExist:
         return Response.make_error_resp(msg="Platform Not Found", code=400)
 
-    res = {
-        "id": platform.id,
-        "name": platform.name
-    }
-    return Response.make_json_response(res)
+    if rabbitTLS == "true":
+        filename = "cert_rabbitmq.zip"
+        dumpPath = os.path.join(ansiblePath, filename)
+        try:
+            return send_file(dumpPath, attachment_filename=filename, as_attachment=True, mimetype="application/zip")
+        except Exception as e:
+            print(e)
+            return Response.make_error_resp("Error Getting Certs", code=400)
+    else:
+        res = {
+            "id": platform.id,
+            "name": platform.name
+        }
+        return Response.make_data_resp(res)
 
 
 """
@@ -374,17 +392,85 @@ def updateDataProcessing(id):
 
     ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.updateProcessing")
 
-    output, error  = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "updateProcessing")
+    output, error = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "updateProcessing")
 
     print(output)
     print(error)
 
     return Response.make_success_resp(msg="Script updated")
 
+"""
+Endpoint to update the data processing script in a platform
+takes in:
+uid
+password
+platform id
+"""
+@platform_crud.route('/platforms/database/dump/<id>', methods=['Post'])
+@jwt_required
+def databaseDump(id):
+
+    data = request.json
+    try:
+        platform = Platforms.get(Platforms.id == id)
+    except Platforms.DoesNotExist:
+        return Response.make_error_resp(msg="Platform Not Found", code=400)
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp(msg="User ID is required", code=400)
+
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+
+    if 'password' in data:
+        password = data['password']
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if not pbkdf2_sha256.verify(password, user.password):
+        return Response.make_error_resp(msg="Password is Incorrect", code=400)
+
+    database = platform.database
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                          string=user.privateKey)
+
+    dumpAnsibleFiles = "ansiblePlaybooks/dataBaseDump"
+
+    ansiblePath = os.path.join(platform.dir, "ansible", "dataBaseDump")
+
+    if os.path.exists(ansiblePath):
+        shutil.rmtree(ansiblePath)
+
+    shutil.copytree(dumpAnsibleFiles, ansiblePath)
+
+    ab.updateDBDumpVars(database, ansiblePath)
+
+    output, error = ab.runPlaybook(platform.ipAddress, privateKey, ansiblePath, "dbDump")
+
+    print(output)
+    print(error)
+
+    filename = ""
+    dumpPath = ""
+    if database == "influxdb":
+        filename = "influxdump.zip"
+        dumpPath = os.path.join(ansiblePath, filename)
+    elif database == "mongodb":
+        filename =  "mongodump.zip"
+        dumpPath = os.path.join(ansiblePath, filename)
+
+    try:
+        return send_file(dumpPath,attachment_filename=filename, as_attachment=True, mimetype="application/zip")
+    except Exception as e:
+        print(e)
+        return Response.make_error_resp("Error Getting Dump", code=400)
 
 
-
-# ==============Helper Functions=============#
+#==============Helper Functions==============#
 
 def serverCheck(floating_ip):
     counter = 0

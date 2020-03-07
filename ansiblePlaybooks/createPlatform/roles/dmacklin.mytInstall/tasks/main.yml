@@ -10,6 +10,45 @@
     repo: https://github.com/Daemon-Macklin/MyTPlatformDataProcessingContainer
     dest: /opt/MyTApplication
 
+- name: Pull tls-gen repo
+  git:
+    repo: https://github.com/michaelklishin/tls-gen.git
+    dest: /opt/tls-gen
+  when: rabbitmqTLS == "true"
+
+- name: Generate tls keys
+  command: make
+  args:
+    chdir: /opt/tls-gen/basic
+  when: rabbitmqTLS == "true"
+
+- name: Create file for tls keys
+  file:
+    path: /opt/MyTApplication/cert_rabbitmq
+    state: directory
+  when: rabbitmqTLS == "true"
+
+- name: Get cert.pem
+  copy:
+    src: /opt/tls-gen/basic/client/cert.pem
+    dest: /opt/MyTApplication/cert_rabbitmq/cert.pem
+    remote_src: yes
+  when: rabbitmqTLS == "true"
+
+- name: Get key.pem
+  copy:
+    src: /opt/tls-gen/basic/client/key.pem
+    dest: /opt/MyTApplication/cert_rabbitmq/key.pem
+    remote_src: yes
+  when: rabbitmqTLS == "true"
+
+- name: Get cacert.pem
+  copy:
+    src: /opt/tls-gen/basic/testca/cacert.pem
+    dest: /opt/MyTApplication/cert_rabbitmq/cacert.pem
+    remote_src: yes
+  when: rabbitmqTLS == "true"
+
 - name: Configure data processing script
   copy:
     src: ../templates/dataProcessing.py
@@ -36,11 +75,6 @@
     src: "../templates/dockerComposeFiles/{{ database }}.yml"
     dest: /opt/MyTApplication/docker-compose.yml
 
-- name: Upload influxdb setup script
-  copy:
-    src: "../templates/setupScripts/{{ database }}.py"
-    dest: /opt/MyTApplication/dbSetup.py
-
 - name: Set Ownership of application to ubuntu
   file:
     path: /opt/MyTApplication
@@ -62,15 +96,21 @@
     project_src: /opt/MyTApplication
   register: output
 
-- name: Install docker-py
-  pip:
-    name: influxdb
-  when: database == "influxdb"
+- name: Get Cert File
+  command: docker cp rabbitmq:/cert_rabbitmq ~/cert_rabbitmq
+  when: rabbitmqTLS == "true"
 
-- name: Run the influx setup script
-  command: python3 /opt/MyTApplication/dbSetup.py
+- name: Zip Cert file
+  archive:
+    path: ~/cert_rabbitmq
+    dest: ~/cert_rabbitmq.zip
+    format: zip
+    remove: yes
+  when: rabbitmqTLS == "true"
 
-- name: Remove influxsetup script
-  file:
-    path: /opt/MyTApplication/dbSetup.py
-    state: absent
+- name: downoad zip
+  fetch:
+    flat: yes
+    src: ~/cert_rabbitmq.zip
+    dest: ./cert_rabbitmq.zip
+  when: rabbitmqTLS == "true"
