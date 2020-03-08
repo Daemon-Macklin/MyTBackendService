@@ -12,11 +12,6 @@
     - python3-pip
     - zip
 
-- name: Stop service httpd, if started
-  service:
-    name: influxdb
-    state: stopped
-
 - name: Create a ext4 filesystem on attached volume
   filesystem:
     fstype: ext4

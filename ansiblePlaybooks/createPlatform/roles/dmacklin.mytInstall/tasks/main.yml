@@ -124,5 +124,5 @@
 - name: Setup cron job for system usage
   cron:
     name: "Gather data"
-    minute: "/2"
-    job: "/usr/bin/python3 /opt/MyTApplication/monitoring.py > /dev/null"
+    minute: "*/30"
+    job: " cd /opt/MyTApplication/ && /usr/bin/python3 /opt/MyTApplication/monitoring.py > /opt/MyTApplication/monLog.txt 2>&1"
