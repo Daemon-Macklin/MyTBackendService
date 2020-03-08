@@ -5,6 +5,8 @@
     externalVol: '/dev/nvme1n1'
     database: 'influx'
     rabbitmqTLS: 'false'
+    monitoring: 'false'
+    monitoringFreq: '*/60'
   become: yes
   roles:
   - role: dmacklin.machineSetup

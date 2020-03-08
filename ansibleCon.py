@@ -32,8 +32,10 @@ def runPlaybook(floatingIp, privateKey, ansiblePath, playbooknName):
     # Return the output and error
     return "", ""
 
-def updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, ansiblePath):
-    # with is like your try .. finally block in this case
+def updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, monitoring, monitoringFreq, ansiblePath):
+
+    monitoringFreq = "*/" + monitoringFreq
+
     with open(ansiblePath + "/installService.yml", 'r') as file:
         # read a list of lines into data
         data = file.readlines()
@@ -43,6 +45,8 @@ def updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS,
     data[4] = "    externalVol: '" + externalVolume + "'\n"
     data[5] = "    database: '" + database + "' \n"
     data[6] = "    rabbitmqTLS: '" + rabbitTLS + "' \n"
+    data[7] = "    monitoring: '" + monitoring + "' \n"
+    data[8] = "    monitoringFreq: '" + monitoringFreq + "' \n"
 
     # and write everything back
     with open(ansiblePath + "/installService.yml", 'w') as file:

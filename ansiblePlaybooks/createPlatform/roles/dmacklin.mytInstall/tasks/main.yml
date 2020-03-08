@@ -52,22 +52,22 @@
 - name: Configure data processing script
   copy:
     src: ../templates/dataProcessing.py
-    dest: /opt/MyTApplication/dataProcessing.py
+    dest: /opt/MyTApplication/app/dataProcessing.py
 
 - name: Configure data requirements.txt
   copy:
     src: ../templates/requirements.txt
-    dest: /opt/MyTApplication/requirements.txt
+    dest: /opt/MyTApplication/app/requirements.txt
 
 - name: Configure config file
   copy:
     src: ../templates/config.ini
-    dest: /opt/MyTApplication/config.ini
+    dest: /opt/MyTApplication/app/config.ini
 
 - name: Configure database connector
   copy:
     src: "/opt/MyTApplication/databaseLibs/{{ database }}.py"
-    dest: /opt/MyTApplication/database.py
+    dest: /opt/MyTApplication/app/database.py
     remote_src: yes
 
 - name: Configure docker-compose.yml file
@@ -114,3 +114,17 @@
     src: ~/cert_rabbitmq.zip
     dest: ./cert_rabbitmq.zip
   when: rabbitmqTLS == "true"
+
+- name: Install monitoring requirements
+  pip:
+    name:
+      - pika
+      - psutil
+  when: monitoring == "true"
+
+- name: Setup cron job for system usage
+  cron:
+    name: "Gather data"
+    minute: "{{ monitoringFreq }}"
+    job: " cd /opt/MyTApplication/ && /usr/bin/python3 /opt/MyTApplication/monitoring.py > /opt/MyTApplication/monLog.txt 2>&1"
+  when: monitoring == "true"

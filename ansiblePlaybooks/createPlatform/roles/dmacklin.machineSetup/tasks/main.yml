@@ -11,13 +11,6 @@
   with_items:
     - python3-pip
     - zip
-    - influxdb
-    - mongodb-clients
-
-- name: Stop service httpd, if started
-  service:
-    name: influxdb
-    state: stopped
 
 - name: Create a ext4 filesystem on attached volume
   filesystem:
