@@ -36,6 +36,8 @@ rabbitmq tls
 database
 data processing script
 list of packages
+monitoring
+monitoring freq
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -111,6 +113,15 @@ def createPlatform():
     else:
         packages = []
 
+    if 'monitoring' in data:
+        monitoring = data["monitoring"]
+        if monitoring == "true":
+            monitoringFreq = data["monitoringFreq"]
+        else:
+            monitoringFreq = "30"
+    else:
+        monitoring = "false"
+
     if len(packages) != 0:
         issue = checkPackages(packages)
         if issue != "":
@@ -171,7 +182,7 @@ def createPlatform():
     if script:
         script.save(os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dataProcessing.py"))
 
-    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, ansiblePath)
+    ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, monitoring, monitoringFreq, ansiblePath)
 
     ab.generateMyTConfig(rabbitUser, rabbitPass, rabbitTLS, database, ansiblePath)
 

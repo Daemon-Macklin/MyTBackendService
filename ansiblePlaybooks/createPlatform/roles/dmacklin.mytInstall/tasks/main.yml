@@ -120,9 +120,11 @@
     name:
       - pika
       - psutil
+  when: monitoring == "true"
 
 - name: Setup cron job for system usage
   cron:
     name: "Gather data"
-    minute: "*/30"
+    minute: "{{ monitoringFreq }}"
     job: " cd /opt/MyTApplication/ && /usr/bin/python3 /opt/MyTApplication/monitoring.py > /opt/MyTApplication/monLog.txt 2>&1"
+  when: monitoring == "true"
