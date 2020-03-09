@@ -1,6 +1,6 @@
 from peewee import *
 from .userModel import Users
-from .credentialsModel import AWSCreds
+from .credentialsModel import *
 import uuid
 
 db = SqliteDatabase('MyTDatabase.db')

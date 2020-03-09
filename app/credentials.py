@@ -105,7 +105,7 @@ authURL
 Keypair name
 uid
 """
-@credentials.route('credentials/create/OS', methods=["Post"])
+@credentials.route('credentials/create/os', methods=["Post"])
 @jwt_required
 def createOSCredentials():
 

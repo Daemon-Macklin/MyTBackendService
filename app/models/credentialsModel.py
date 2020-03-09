@@ -20,9 +20,9 @@ class AWSCreds(BaseModel):
 
 class OpenstackCreds(BaseModel):
     name = CharField()
-    username: CharField()
-    password: CharField()
-    authUrl: CharField()
-    keyPairName: CharField()
+    username = CharField()
+    password = CharField()
+    authUrl = CharField()
+    keyPairName = CharField()
     uid = ForeignKeyField(model=Users)
     id = UUIDField(unique=True, primary_key=True)
