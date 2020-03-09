@@ -24,6 +24,5 @@ class OpenstackCreds(BaseModel):
     password: CharField()
     authUrl: CharField()
     key_pair: CharField()
-    tenantName: CharField()
     uid = ForeignKeyField(model=Users)
     id = UUIDField(unique=True, primary_key=True)
