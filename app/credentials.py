@@ -110,7 +110,6 @@ uid
 def createOSCredentials():
 
     data = request.json
-
     # Check required fields
     if 'name' in data:
         name = data['name']
@@ -266,7 +265,7 @@ def getAllCreds(uid):
 @jwt_required
 def removeCreds(type, id):
 
-    if type == "aws":
+    if type == "AWS":
         cred = AWSCreds.get(AWSCreds.id == id)
         spaces = SpaceAWS.select().where(SpaceAWS.cid == cred.id)
         if len(spaces) != 0:
@@ -275,3 +274,16 @@ def removeCreds(type, id):
         else:
             cred.delete_instance()
             return Response.make_success_resp("Credentials have been removed")
+
+    if type == "Openstack":
+        cred = OpenstackCreds.get(OpenstackCreds.id == id)
+        spaces = SpaceOS.select().where(SpaceOS.cid == cred.id)
+        if len(spaces) != 0:
+            return Response.make_error_resp(msg="Please Delete Spaces using these credentials before deleting "
+                                                "credentials", code=400)
+        else:
+            cred.delete_instance()
+            return Response.make_success_resp("Credentials have been removed")
+
+    else:
+        return Response.make_error_resp("Invalid Type", code=400)

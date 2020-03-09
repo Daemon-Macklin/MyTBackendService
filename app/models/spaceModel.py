@@ -22,10 +22,10 @@ class SpaceAWS(BaseModel):
     id = UUIDField(unique=True, primary_key=True)
 
 class SpaceOS(BaseModel):
-    dir = CharField()
-    tenant_network = CharField()
-    avail_zone = CharField()
-    ip_pool = CharField()
+    name= CharField()
+    tennantNetwork = CharField()
+    availabilityZone = CharField()
+    ipPool = CharField()
     uid = ForeignKeyField(model=Users)
     cid = ForeignKeyField(model=OpenstackCreds)
     id = UUIDField(unique=True, primary_key=True)
