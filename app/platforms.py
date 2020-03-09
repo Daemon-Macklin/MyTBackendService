@@ -131,7 +131,7 @@ def createPlatform():
     packages = packages + ["pika==1.1.0", "influxdb", "pymongo"]
 
     safePlatformName = platformName.replace('/', '_')
-    safePlatformName = safePlaformName.replace(' ', '_')
+    safePlatformName = safePlatformName.replace(' ', '_')
 
     # ------------Terraform Setup------------#
     validPlatforms = ["aws", "openstack"]
@@ -148,7 +148,7 @@ def createPlatform():
             space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
         except SpaceAWS.DoesNotExist:
             return Response.make_error_resp(msg="Error Finding Space", code=400)
-        platformPath = os.path.join(space.dir, "platforms", safePlaformName)
+        platformPath = os.path.join(space.dir, "platforms", safePlatformName)
 
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
@@ -156,12 +156,11 @@ def createPlatform():
         platformPath = os.path.join("openstack", safePlatformName)
 
     try:
-        os.makedirs(platformPath)
+        shutil.copytree(tfPath, platformPath)
     except FileExistsError as e:
         return Response.make_error_resp(msg="Platform Name already used", code=400)
 
     # Get required files
-    shutil.copytree(tfPath, platformPath)
     #requiredFiles = ["deploy.tf", "provider.tf"]
     #for file in requiredFiles:
     #   copyfile(tfPath + "/" + file, platformPath + "/" + file)
@@ -169,7 +168,7 @@ def createPlatform():
     # Create
 
     if cloudService == "aws":
-        varPath = awsGenVars(uid, space, safePlatformName, platformPath)
+        varPath = awsGenVars(user, password, space, safePlatformName, platformPath)
         if varPath == "Error Finding Creds":
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
@@ -513,11 +512,11 @@ def checkPackages(packages):
 
     return ""
 
-def awsGenVars(uid, space, safePlatformName, platformPath):
+def awsGenVars(user, password, space, safePlatformName, platformPath):
 
     # Get the aws creds object
     try:
-        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
+        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == user.uid))
     except AWSCreds.DoesNotExist:
         return "Error Finding Creds"
 
