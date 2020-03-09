@@ -159,7 +159,9 @@ name
 tenant network
 availability zone
 ip pool
+intenral network
 creds id
+security Group
 uid 
 password
 """
@@ -189,10 +191,10 @@ def createOSSpace():
     else:
         return Response.make_error_resp(msg="Creds id is required", code=400)
 
-    if "tenantNetwork" in data:
-        tenantNetwork = data["tenantNetwork"]
+    if "tenantName" in data:
+        tenantName = data["tenantName"]
     else:
-        return Response.make_error_resp(msg="Tenant Network is required", code=400)
+        return Response.make_error_resp(msg="Tenant Name is required", code=400)
 
     if "availabilityZone" in data:
         availabilityZone = data["availabilityZone"]
@@ -203,6 +205,16 @@ def createOSSpace():
         ipPool = data["ipPool"]
     else:
         return Response.make_error_resp(msg="Ip Pool is required", code=400)
+
+    if "securityGroup" in data:
+        securityGroup = data["securityGroup"]
+    else:
+        return Response.make_error_resp(msg="Security Group is required", code=400)
+
+    if "intNetwork" in data:
+        intNetwork = data["intNetwork"]
+    else:
+        return Response.make_error_resp(msg="intNetwork is required", code=400)
 
     if "name" in data:
         name = data["name"]
@@ -217,7 +229,7 @@ def createOSSpace():
         except OpenstackCreds.DoesNotExist:
             return Response.make_error_resp(msg="Error Finding Creds", code=404)
 
-        newSpace = SpaceOS.create(name=name, tennantNetwork=tenantNetwork, availabilityZone=availabilityZone, ipPool=ipPool, uid=uid, cid=cid, id=str(uuid.uuid4()))
+        newSpace = SpaceOS.create(name=name, tenantName=tenantName, availabilityZone=availabilityZone, ipPool=ipPool, securityGroup=securityGroup, intNetwork=intNetwork, uid=uid, cid=cid, id=str(uuid.uuid4()))
 
         # Get the new space object
         try:

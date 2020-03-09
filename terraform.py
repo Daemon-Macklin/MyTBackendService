@@ -64,3 +64,26 @@ def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, acc
     f.close()
 
     return path
+
+def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabilityZone, flavorName, imageName, platformName, ipPool, securityGroup, intNetwork, publicKey, platformPath):
+
+    string = 'variable "openstack_user_name"{\n  default = "' + osUsername + '"\n }\n\n\
+    variable "openstack_password"{\n  default = "' + osPassword + '"\n }\n\n\
+    variable "openstack_tenant_name" { \n  default = "' + tenantName + '"\n}\n\n\
+    variable "openstack_auth_url" { \n  default = "' +authUrl +'"\n}\n\n\
+    variable "availability_zone" { \n default = "'+ availabilityZone + '"\n}\n\n\
+    variable "ip_pool" { \n default = "' + ipPool + '"\n}\n\n\
+    variable "security_group" { \n default = "' + securityGroup + '"\n}\n\n\
+    variable "flavor_name" { \n default = "' + flavorName + '"\n}\n\n\
+    variable "image_name" { \n default = "' + imageName + '"\n}\n\n\
+    variable "internal_network" { \n default = "' + intNetwork + '"\n}\n\n\
+    variable "public_key" { \n default = "' + publicKey + '"\n}\n\n\
+    variable "platform_name" { \n default = "' + platformName + '" \n }\n'
+
+    path = platformPath + "/variables.tf"
+
+    f = open(path, "w")
+    f.write(string)
+    f.close()
+
+    return path

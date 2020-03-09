@@ -5,9 +5,9 @@ import terraform as tf
 import ansibleCon as ab
 from app.config import URL_PREFIX
 from shutil import copyfile
-from .models.credentialsModel import AWSCreds, OpenstackCreds
+from .models.credentialsModel import *
 from .models.userModel import Users
-from .models.spaceModel import SpaceAWS
+from .models.spaceModel import *
 from .models.platformModel import Platforms
 from passlib.hash import pbkdf2_sha256
 import encryption
@@ -38,6 +38,8 @@ data processing script
 list of packages
 monitoring
 monitoring freq
+image name
+flavor name
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -153,19 +155,26 @@ def createPlatform():
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
-        platformPath = os.path.join("openstack", safePlatformName)
+        if 'flavorName' in data:
+            flavorName = data['flavorName']
+        else:
+            return Response.make_error_resp(msg="Flavor Name Required for Openstack")
+
+        if 'imageName' in data:
+            imageName = data['imageName']
+        else:
+            return Response.make_error_resp(msg="Image Name Required for Openstack")
+
+        try:
+            space = SpaceOS.get((SpaceOS.id == sid) & (SpaceOS.uid == uid))
+        except SpaceOS.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Space", code=400)
+        platformPath = os.path.join("openstack", "platforms", safePlatformName)
 
     try:
         shutil.copytree(tfPath, platformPath)
     except FileExistsError as e:
         return Response.make_error_resp(msg="Platform Name already used", code=400)
-
-    # Get required files
-    #requiredFiles = ["deploy.tf", "provider.tf"]
-    #for file in requiredFiles:
-    #   copyfile(tfPath + "/" + file, platformPath + "/" + file)
-
-    # Create
 
     if cloudService == "aws":
         varPath = awsGenVars(user, password, space, safePlatformName, platformPath)
@@ -173,7 +182,9 @@ def createPlatform():
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
     elif cloudService == "openstack":
-        varPath = ""
+        varPath = osGenVars(user, password, space, flavorName, imageName, safePlatformName, platformPath)
+        if varPath == "Error Finding Creds":
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
     #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
@@ -196,7 +207,7 @@ def createPlatform():
     output, createResultCode = tf.create(platformPath)
 
     # Remove the vars file
-    os.remove(varPath)
+    # os.remove(varPath)
 
     if createResultCode != 0:
         # Add destroy function here
@@ -305,6 +316,32 @@ def removePlatform(id):
         shutil.rmtree(path)
         return Response.make_success_resp(msg="Platform Has been removed")
 
+    elif platform.cloudService == "openstack":
+
+        space = SpaceOS.get((SpaceOS.id == platform.sid) & (SpaceOS.uid == uid))
+        creds = OpenstackCreds.get(OpenstackCreds.id == space.cid)
+
+        osUsername = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                              string=creds.username)
+        osPassword = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                              string=creds.password)
+        authUrl = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                           string=creds.authUrl)
+
+        tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone, "", "", "", space.ipPool,
+                                         space.securityGroup, space.intNetwork, "", platform.dir)
+
+        path = platform.dir
+        resultCode = tf.destroy(platform.dir)
+
+        if resultCode != 0:
+            return Response.make_error_resp(msg="Error deleting platform")
+
+        platform.delete_instance()
+
+        if path != "":
+            shutil.rmtree(path)
+            return Response.make_success_resp(msg="Platform Has been removed")
 
 @platform_crud.route('/platforms/get/<uid>', methods=['Get'])
 @jwt_required
@@ -526,7 +563,21 @@ def awsGenVars(user, password, space, safePlatformName, platformPath):
     accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                          string=creds.accessKey)
 
-    varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
+    return tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
                                          accessKey, safePlatformName, platformPath)
 
-    return varPath
+
+def osGenVars(user, password, space, flavorName, imageName, safePlatformName, platformPath):
+
+    try:
+        creds = OpenstackCreds.get((OpenstackCreds.id == space.cid) & (OpenstackCreds.uid == user.uid))
+    except OpenstackCreds.DoesNotExist:
+        return "Error Finding Creds"
+
+    osUsername = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.username)
+    osPassword = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.password)
+    authUrl = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.authUrl)
+    publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=user.publicKey)
+
+    return tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone,
+                                     flavorName, imageName, safePlatformName, space.ipPool, space.securityGroup, space.intNetwork, publicKey, platformPath)

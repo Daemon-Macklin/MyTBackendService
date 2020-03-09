@@ -102,7 +102,6 @@ password
 os username
 os password
 authURL
-Keypair name
 uid
 """
 @credentials.route('credentials/create/os', methods=["Post"])
@@ -141,11 +140,6 @@ def createOSCredentials():
     else:
         return Response.make_error_resp("authUrl is Required")
 
-    if 'keyPairName' in data:
-        keyPairName = data["keyPairName"]
-    else:
-        return Response.make_error_resp("keyPairName is Required")
-
     # Get the user
     try:
         user = Users.get(Users.uid == uid)
@@ -159,11 +153,10 @@ def createOSCredentials():
         osUsername = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=osUsername)
         osPassword = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=osPassword)
         authUrl = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=authUrl)
-        keyPairName = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=keyPairName)
 
         # Create the credentials object
         try:
-            newCreds = OpenstackCreds.create(name=name, username=osUsername, password=osPassword, authUrl=authUrl, keyPairName=keyPairName, uid=uid,
+            newCreds = OpenstackCreds.create(name=name, username=osUsername, password=osPassword, authUrl=authUrl, uid=uid,
                                              id=str(uuid.uuid4()))
         except Exception as e:
             print(e)
