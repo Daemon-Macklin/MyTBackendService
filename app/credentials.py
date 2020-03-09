@@ -92,6 +92,100 @@ def createAWSCredentials():
     else:
         return Response.make_error_resp(msg="Password is not correct", code=400)
 
+
+"""
+Function to create Google Cloud Platform Credentials
+Takes in:
+account.json file
+name
+password
+os username
+os password
+authURL
+Keypair name
+uid
+"""
+@credentials.route('credentials/create/OS', methods=["Post"])
+@jwt_required
+def createOSCredentials():
+
+    data = request.json
+
+    # Check required fields
+    if 'name' in data:
+        name = data['name']
+    else:
+        return Response.make_error_resp("Name is required ", code=400)
+
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp("User id is Required")
+
+    if 'osUsername' in data:
+        osUsername = data["osUsername"]
+    else:
+        return Response.make_error_resp("Openstack Username is Required")
+
+    if 'osPassword' in data:
+        osPassword = data["osPassword"]
+    else:
+        return Response.make_error_resp("Openstack Password is Required")
+
+    if 'authUrl' in data:
+        authUrl = data["authUrl"]
+    else:
+        return Response.make_error_resp("authUrl is Required")
+
+    if 'keyPairName' in data:
+        keyPairName = data["keyPairName"]
+    else:
+        return Response.make_error_resp("keyPairName is Required")
+
+    # Get the user
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="User does not exist", code=404)
+
+    # Verify user password
+    if pbkdf2_sha256.verify(password, user.password):
+
+        # Encrypt Data
+        osUsername = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=osUsername)
+        osPassword = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=osPassword)
+        authUrl = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=authUrl)
+        keyPairName = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=keyPairName)
+
+        # Create the credentials object
+        try:
+            newCreds = OpenstackCreds.create(name=name, username=osUsername, password=osPassword, authUrl=authUrl, keyPairName=keyPairName, uid=uid,
+                                             id=str(uuid.uuid4()))
+        except Exception as e:
+            print(e)
+            return Response.make_error_resp("Error Creating Creds")
+
+        # Check the creds are there
+        try:
+            creds = OpenstackCreds.get(OpenstackCreds.id == newCreds.id)
+        except OpenstackCreds.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+        # Return the name and id of the creds
+        res = {
+            'name': creds.name,
+            'id': creds.id
+        }
+        return Response.make_json_response(res)
+
+    else:
+        return Response.make_error_resp(msg="Password is not correct", code=400)
+
 """
 Function to create Google Cloud Platform Credentials
 Takes in:
@@ -149,7 +243,16 @@ def getAllCreds(uid):
         cred = {
             "name": creds.name,
             "id" : creds.id,
-            "type": "aws"
+            "type": "AWS"
+        }
+        response.append(cred)
+
+    osQuery = OpenstackCreds.select(OpenstackCreds.name, OpenstackCreds.id).where(OpenstackCreds.uid == user.uid)
+    for creds in osQuery:
+        cred = {
+            "name": creds.name,
+            "id" : creds.id,
+            "type": "Openstack"
         }
         response.append(cred)
 
