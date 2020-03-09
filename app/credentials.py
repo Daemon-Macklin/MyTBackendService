@@ -26,7 +26,7 @@ Creds name
 """
 @credentials.route('credentials/create/aws', methods=["Post"])
 @jwt_required
-def createCredentials():
+def createAWSCredentials():
     data = request.json
 
     # Check required fields
@@ -92,6 +92,43 @@ def createCredentials():
     else:
         return Response.make_error_resp(msg="Password is not correct", code=400)
 
+"""
+Function to create Google Cloud Platform Credentials
+Takes in:
+account.json file
+name
+password
+uid
+"""
+@credentials.route('credentials/create/gcp', methods=["Post"])
+@jwt_required
+def createGCPCredentials():
+    data = dict(request.form)
+
+    if 'account' in request.files:
+        account = request.files['account']
+    else:
+        account = None
+
+    # Check required fields
+    if 'name' in data:
+        name = data['name']
+    else:
+        return Response.make_error_resp("Name is required ", code=400)
+
+    if 'password' in data:
+        password = data["password"]
+    else:
+        return Response.make_error_resp(msg="Password is required", code=400)
+
+    if 'uid' in data:
+        uid = data['uid']
+    else:
+        return Response.make_error_resp("User id is Required")
+
+
+
+    return "Function not Complete"
 """
 Function to get all of the users credentials. 
 """

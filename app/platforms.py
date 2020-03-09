@@ -82,7 +82,7 @@ def createPlatform():
     if 'sid' in data:
         sid = data['sid']
     else:
-        return Response.make_error_resp(msg="Space ID is required", code=400)
+        sid = ""
 
     if "rabbitUser" in data:
         rabbitUser = data['rabbitUser']
@@ -121,6 +121,7 @@ def createPlatform():
             monitoringFreq = "30"
     else:
         monitoring = "false"
+        monitoringFreq = "30"
 
     if len(packages) != 0:
         issue = checkPackages(packages)
@@ -129,51 +130,53 @@ def createPlatform():
 
     packages = packages + ["pika==1.1.0", "influxdb", "pymongo"]
 
-    try:
-        space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
-    except SpaceAWS.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Space", code=400)
+    safePlatformName = platformName.replace('/', '_')
+    safePlatformName = safePlaformName.replace(' ', '_')
 
-    # Get the aws creds object
-    try:
-        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
-    except AWSCreds.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Creds", code=400)
-
-    # Decrypt the user data
-    secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                         string=creds.secretKey)
-    accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                         string=creds.accessKey)
-    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                          string=user.privateKey)
-
-    safePlaformName = platformName.replace('/', '_')
-    safePlaformName = safePlaformName.replace(' ', '_')
-
-    platformPath = os.path.join(space.dir, "platforms", safePlaformName)
-    try:
-        os.makedirs(platformPath)
-    except FileExistsError as e:
-        return Response.make_error_resp(msg="Platform Name already used", code=400)
-    except:
-        return Response.make_error_resp(msg="Error Creating Platform Directory", code=400)
-
+    # ------------Terraform Setup------------#
     validPlatforms = ["aws", "openstack"]
     if cloudService not in validPlatforms:
         return Response.make_error_resp(msg="invalid cloudService", code=400)
 
+    # Define Terraform Variables
     tfPath = ""
+    platformPath = ""
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
         externalVolume = "/dev/nvme1n1"
-        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
-                                             accessKey, safePlaformName, platformPath)
+        try:
+            space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
+        except SpaceAWS.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Space", code=400)
+        platformPath = os.path.join(space.dir, "platforms", safePlaformName)
 
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
+        platformPath = os.path.join("openstack", safePlatformName)
 
+    try:
+        os.makedirs(platformPath)
+    except FileExistsError as e:
+        return Response.make_error_resp(msg="Platform Name already used", code=400)
+
+    # Get required files
+    shutil.copytree(tfPath, platformPath)
+    #requiredFiles = ["deploy.tf", "provider.tf"]
+    #for file in requiredFiles:
+    #   copyfile(tfPath + "/" + file, platformPath + "/" + file)
+
+    # Create
+
+    if cloudService == "aws":
+        varPath = awsGenVars(uid, space, safePlatformName, platformPath)
+        if varPath == "Error Finding Creds":
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+    elif cloudService == "openstack":
+        varPath = ""
+
+    #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
     ansiblePath = os.path.join(platformPath, "ansible", "createPlatform")
 
@@ -188,11 +191,7 @@ def createPlatform():
 
     ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.mytInstall")
 
-    requiredFiles = ["deploy.tf", "provider.tf"]
-
-    for file in requiredFiles:
-        copyfile(tfPath + "/" + file, platformPath + "/" + file)
-
+    # ------------Terraform Create------------#
     initResultCode = tf.init(platformPath)
 
     output, createResultCode = tf.create(platformPath)
@@ -209,11 +208,16 @@ def createPlatform():
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
+    # ------------Ansible Create------------#
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                          string=user.privateKey)
+
     aboutput, aberror = ab.runPlaybook(output["instance_ip_address"]["value"], privateKey, ansiblePath, "installService")
 
     print(aboutput)
     print(aberror)
 
+    # ------------Save Platform------------#
     newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
                                    packageList=data['packages'], database=database, id=str(uuid.uuid4()))
@@ -223,6 +227,7 @@ def createPlatform():
     except Platforms.DoesNotExist:
         return Response.make_error_resp(msg="Platform Not Found", code=400)
 
+    # ------------Return Data------------#
     if rabbitTLS == "true":
         filename = "cert_rabbitmq.zip"
         dumpPath = os.path.join(ansiblePath, filename)
@@ -507,3 +512,22 @@ def checkPackages(packages):
             return package
 
     return ""
+
+def awsGenVars(uid, space, safePlatformName, platformPath):
+
+    # Get the aws creds object
+    try:
+        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
+    except AWSCreds.DoesNotExist:
+        return "Error Finding Creds"
+
+    # Decrypt the user data
+    secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.secretKey)
+    accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.accessKey)
+
+    varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
+                                         accessKey, safePlatformName, platformPath)
+
+    return varPath
