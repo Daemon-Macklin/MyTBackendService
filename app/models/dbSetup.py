@@ -7,4 +7,4 @@ from .platformModel import *
 def init():
     # Create the database tables if they don't already exist.
     db.connect()
-    db.create_tables([Users, SpaceAWS, SpaceOS, AWSCreds, OpenstackCreds, Platforms])
+    db.create_tables([Users, SpaceAWS, SpaceOS, AWSCreds, OpenstackCreds, GCPCreds, Platforms])

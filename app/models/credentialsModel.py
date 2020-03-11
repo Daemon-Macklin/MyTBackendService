@@ -25,3 +25,9 @@ class OpenstackCreds(BaseModel):
     authUrl = CharField()
     uid = ForeignKeyField(model=Users)
     id = UUIDField(unique=True, primary_key=True)
+
+class GCPCreds(BaseModel):
+    name = CharField()
+    account = BlobField()
+    uid = ForeignKeyField(model=Users)
+    id = UUIDField(unique=True, primary_key=True)

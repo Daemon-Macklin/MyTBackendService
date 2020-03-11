@@ -178,6 +178,7 @@ def createOSCredentials():
     else:
         return Response.make_error_resp(msg="Password is not correct", code=400)
 
+
 """
 Function to create Google Cloud Platform Credentials
 Takes in:
@@ -192,15 +193,15 @@ def createGCPCredentials():
     data = dict(request.form)
 
     if 'account' in request.files:
-        account = request.files['account']
+        account = request.files['account'].read().decode("utf-8")
     else:
-        account = None
+        return Response.make_error_resp("Account is required", code=400)
 
     # Check required fields
     if 'name' in data:
         name = data['name']
     else:
-        return Response.make_error_resp("Name is required ", code=400)
+        return Response.make_error_resp("Name is required", code=400)
 
     if 'password' in data:
         password = data["password"]
@@ -212,9 +213,38 @@ def createGCPCredentials():
     else:
         return Response.make_error_resp("User id is Required")
 
+    try:
+        user = Users.get(Users.uid == uid)
+    except Users.DoesNotExist:
+        return Response.make_error_resp(msg="No User Found")
+    except Exception as e:
+        return Response.make_error_resp(msg="Error reading database", code=500)
 
+    if pbkdf2_sha256.verify(password, user.password):
+        account = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=account)
 
-    return "Function not Complete"
+        try:
+            newCreds = GCPCreds.create(name=name, account=account,uid=uid,id=str(uuid.uuid4()))
+        except Exception as e:
+            print(e)
+            return Response.make_error_resp(msg="Error Creating Credentials", code=400)
+
+        # Check the creds are there
+        try:
+            creds = GCPCreds.get(GCPCreds.id == newCreds.id)
+        except OpenstackCreds.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+        # Return the name and id of the creds
+        res = {
+            'name': creds.name,
+            'id': creds.id
+        }
+        return Response.make_json_response(res)
+
+    else:
+        return Response.make_error_resp(msg="Password is not correct", code=400)
+
 """
 Function to get all of the users credentials. 
 """

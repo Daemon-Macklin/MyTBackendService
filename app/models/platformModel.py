@@ -14,10 +14,11 @@ class BaseModel(Model):
 class Platforms(BaseModel):
     dir = CharField()
     name = CharField()
-    uid = ForeignKeyField(model=Users)
     sid = CharField()
     cloudService = CharField()
     ipAddress = CharField()
     packageList = TextField()
     database = TextField()
+    dbsize = IntegerField()
+    uid = ForeignKeyField(model=Users)
     id = UUIDField(unique=True, primary_key=True)
