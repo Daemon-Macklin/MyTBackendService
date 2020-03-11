@@ -278,6 +278,15 @@ def getAllCreds(uid):
         }
         response.append(cred)
 
+    gcpQuery = GCPCreds.select(GCPCreds.name, GCPCreds.id).where(GCPCreds.uid == user.uid)
+    for creds in gcpQuery:
+        cred = {
+            "name": creds.name,
+            "id" : creds.id,
+            "type": "GCP"
+        }
+        response.append(cred)
+
     res = {
         "creds": response
     }
@@ -303,6 +312,16 @@ def removeCreds(type, id):
         spaces = SpaceOS.select().where(SpaceOS.cid == cred.id)
         if len(spaces) != 0:
             return Response.make_error_resp(msg="Please Delete Spaces using these credentials before deleting "
+                                                "credentials", code=400)
+        else:
+            cred.delete_instance()
+            return Response.make_success_resp("Credentials have been removed")
+
+    if type == "GCP":
+        cred = GCPCreds.get(GCPCreds.id == id)
+        platforms = Platforms.select().where(Platforms.cid == cred.id)
+        if len(platforms) != 0:
+            return Response.make_error_resp(msg="Please Delete Platforms using these credentials before deleting "
                                                 "credentials", code=400)
         else:
             cred.delete_instance()
