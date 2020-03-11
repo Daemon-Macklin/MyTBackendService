@@ -1,4 +1,5 @@
 from python_terraform import Terraform
+import os
 
 # Function to initialize terraform directory
 def init(pathtoPlatform):
@@ -109,5 +110,5 @@ def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, pl
     f = open(varPath, "w")
     f.write(string)
     f.close()
-    
+
     return varPath, accountPath, keyPath

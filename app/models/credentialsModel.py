@@ -29,5 +29,6 @@ class OpenstackCreds(BaseModel):
 class GCPCreds(BaseModel):
     name = CharField()
     account = BlobField()
+    platform = CharField()
     uid = ForeignKeyField(model=Users)
     id = UUIDField(unique=True, primary_key=True)

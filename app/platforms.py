@@ -40,6 +40,8 @@ monitoring
 monitoring freq
 image name
 flavor name
+zone
+cid
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -135,8 +137,10 @@ def createPlatform():
     safePlatformName = platformName.replace('/', '_')
     safePlatformName = safePlatformName.replace(' ', '_')
 
+    cid = ""
+    space = ""
     # ------------Terraform Setup------------#
-    validPlatforms = ["aws", "openstack"]
+    validPlatforms = ["aws", "openstack", "gcp"]
     if cloudService not in validPlatforms:
         return Response.make_error_resp(msg="invalid cloudService", code=400)
 
@@ -171,6 +175,25 @@ def createPlatform():
             return Response.make_error_resp(msg="Error Finding Space", code=400)
         platformPath = os.path.join("openstack", "platforms", safePlatformName)
 
+    elif cloudService == "gcp":
+        tfPath = "terraformScripts/createPlatform/gcp"
+        externalVolume = "/dev/vdb"
+        if 'zone' in data:
+            zone = data['zone']
+        else:
+            return Response.make_error_resp(msg="Zone Required for GCP")
+
+        if 'cid' in data:
+            cid = data['cid']
+        else:
+            return Response.make_error_resp(msg="Credentials Required for GCP")
+
+        try:
+            creds = GCPCreds.get((GCPCreds.id == cid) & (GCPCreds.uid == uid))
+        except SpaceOS.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Credentials", code=400)
+        platformPath = os.path.join("gcp", "platforms", safePlatformName)
+
     try:
         shutil.copytree(tfPath, platformPath)
     except FileExistsError as e:
@@ -185,6 +208,9 @@ def createPlatform():
         varPath = osGenVars(user, password, space, flavorName, imageName, safePlatformName, platformPath)
         if varPath == "Error Finding Creds":
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+    elif cloudService == "gcp":
+        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, platformName, platformPath)
 
     #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
@@ -208,7 +234,12 @@ def createPlatform():
 
     # Remove the vars file
     # os.remove(varPath)
-
+    """
+    if(cloudService == "gcp"):
+        os.remove(accountPath)
+        os.remove(keyPath)
+    """
+    print(createResultCode)
     if createResultCode != 0:
         # Add destroy function here
         return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
@@ -228,7 +259,7 @@ def createPlatform():
     print(aberror)
 
     # ------------Save Platform------------#
-    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
+    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id, cid=cid,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
                                    packageList=data['packages'], database=database, id=str(uuid.uuid4()))
 
@@ -581,3 +612,11 @@ def osGenVars(user, password, space, flavorName, imageName, safePlatformName, pl
 
     return tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone,
                                      flavorName, imageName, safePlatformName, space.ipPool, space.securityGroup, space.intNetwork, publicKey, platformPath)
+
+
+def gcpGenVars(user, password, creds, zone, platformName, platformPath):
+
+    publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=user.publicKey)
+    account = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=creds.account)
+
+    return tf.generateGCPPlatformVars(publicKey, account, platformName, creds.platform, zone, platformPath)

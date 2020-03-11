@@ -183,6 +183,7 @@ def createOSCredentials():
 Function to create Google Cloud Platform Credentials
 Takes in:
 account.json file
+platform
 name
 password
 uid
@@ -192,12 +193,17 @@ uid
 def createGCPCredentials():
     data = dict(request.form)
 
+    # Check required fields
     if 'account' in request.files:
         account = request.files['account'].read().decode("utf-8")
     else:
         return Response.make_error_resp("Account is required", code=400)
 
-    # Check required fields
+    if 'platform' in data:
+        platform = data['platform']
+    else:
+        return Response.make_error_resp("Platform is required", code=400)
+
     if 'name' in data:
         name = data['name']
     else:
@@ -224,7 +230,7 @@ def createGCPCredentials():
         account = encryption.encryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=account)
 
         try:
-            newCreds = GCPCreds.create(name=name, account=account,uid=uid,id=str(uuid.uuid4()))
+            newCreds = GCPCreds.create(name=name, platform=platform, account=account,uid=uid,id=str(uuid.uuid4()))
         except Exception as e:
             print(e)
             return Response.make_error_resp(msg="Error Creating Credentials", code=400)
