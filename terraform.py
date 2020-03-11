@@ -87,3 +87,27 @@ def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabi
     f.close()
 
     return path
+
+def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, platformPath):
+
+    keyPath = os.path.join(platformPath, "id_rsa.pub")
+    f = open(keyPath, "w+")
+    f.write(publicKey)
+    f.close()
+
+    accountPath = os.path.join(platformPath, "account.json")
+    f = open(accountPath, "w+")
+    f.write(account)
+    f.close()
+
+    string =  'variable "ssh_pub_file" { \n  default ="./id_rsa.pub" \n}\n\n\
+    variable "platform" { \n  default = "' +platform +'"\n}\n\n\
+    variable "zone" { \n  default = "' + zone + '"\n}\n\n\
+    variable "platform_name" { \n default = "' + platformName + '" \n } \n'
+
+    varPath = platformPath + "/variables.tf"
+    f = open(varPath, "w")
+    f.write(string)
+    f.close()
+    
+    return varPath, accountPath, keyPath
