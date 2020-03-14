@@ -335,18 +335,6 @@ def removePlatform(id):
         tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
                                              "", platform.dir)
 
-        path = platform.dir
-        resultCode = tf.destroy(platform.dir)
-
-        if resultCode != 0:
-            return Response.make_error_resp(msg="Error deleting platform")
-
-        platform.delete_instance()
-
-    if path != "":
-        shutil.rmtree(path)
-        return Response.make_success_resp(msg="Platform Has been removed")
-
     elif platform.cloudService == "openstack":
 
         space = SpaceOS.get((SpaceOS.id == platform.sid) & (SpaceOS.uid == uid))
@@ -362,17 +350,23 @@ def removePlatform(id):
         tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone, "", "", "", space.ipPool,
                                          space.securityGroup, space.intNetwork, "", platform.dir)
 
-        path = platform.dir
-        resultCode = tf.destroy(platform.dir)
+    elif platform.cloudService == "gcp":
+        creds = GCPCreds.get(GCPCreds.id == platform.cid)
 
-        if resultCode != 0:
-            return Response.make_error_resp(msg="Error deleting platform")
+        gcpGenVars(user, password, creds, "", platform.name, platform.dir)
 
-        platform.delete_instance()
+    path = platform.dir
+    resultCode = tf.destroy(platform.dir)
 
-        if path != "":
-            shutil.rmtree(path)
-            return Response.make_success_resp(msg="Platform Has been removed")
+    if resultCode != 0:
+        return Response.make_error_resp(msg="Error deleting platform")
+
+    platform.delete_instance()
+
+    if path != "":
+        shutil.rmtree(path)
+        return Response.make_success_resp(msg="Platform Has been removed")
+
 
 @platform_crud.route('/platforms/get/<uid>', methods=['Get'])
 @jwt_required
