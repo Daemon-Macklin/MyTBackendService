@@ -15,9 +15,14 @@ resource "google_compute_instance" "default" {
     access_config {}
   }
 
+
+  lifecycle {
+    ignore_changes = [attached_disk]
+  }
+
   metadata = {
    ssh-keys = "ubuntu:${file(var.ssh_pub_file)}" 
- }
+  }
 }
 
 resource "google_compute_attached_disk" "default" {
@@ -43,9 +48,8 @@ resource "google_compute_firewall" "securitygroups" {
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "22"]
+    ports    = ["22", "5671", "5672", "3000"]
   }
-
 }
 
 output "instance_ip_address" {

@@ -18,7 +18,7 @@ class Platforms(BaseModel):
     ipAddress = CharField()
     packageList = TextField()
     database = TextField()
-    dbsize = IntegerField()
+    dbsize = IntegerField(null=True)
     sid = CharField()
     cid = CharField()
     uid = ForeignKeyField(model=Users)

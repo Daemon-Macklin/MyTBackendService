@@ -177,7 +177,7 @@ def createPlatform():
 
     elif cloudService == "gcp":
         tfPath = "terraformScripts/createPlatform/gcp"
-        externalVolume = "/dev/vdb"
+        externalVolume = "/dev/sdb"
         if 'zone' in data:
             zone = data['zone']
         else:
@@ -233,12 +233,12 @@ def createPlatform():
     output, createResultCode = tf.create(platformPath)
 
     # Remove the vars file
-    # os.remove(varPath)
-    """
-    if(cloudService == "gcp"):
+    os.remove(varPath)
+
+    if cloudService == "gcp":
         os.remove(accountPath)
         os.remove(keyPath)
-    """
+
     print(createResultCode)
     if createResultCode != 0:
         # Add destroy function here
@@ -259,7 +259,7 @@ def createPlatform():
     print(aberror)
 
     # ------------Save Platform------------#
-    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id, cid=cid,
+    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=sid, cid=cid,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
                                    packageList=data['packages'], database=database, id=str(uuid.uuid4()))
 
