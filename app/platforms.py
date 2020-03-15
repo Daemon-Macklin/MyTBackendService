@@ -232,17 +232,20 @@ def createPlatform():
 
     output, createResultCode = tf.create(platformPath)
 
+    print(createResultCode)
+    if createResultCode != 0:
+        # Add destroy function here
+        print("Removing Inf")
+        tf.destroy(platformPath)
+        shutil.rmtree(platformPath)
+        return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
+
     # Remove the vars file
     os.remove(varPath)
 
     if cloudService == "gcp":
         os.remove(accountPath)
         os.remove(keyPath)
-
-    print(createResultCode)
-    if createResultCode != 0:
-        # Add destroy function here
-        return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
 
     isUp = serverCheck(output["instance_ip_address"]["value"])
 
@@ -546,6 +549,16 @@ def databaseDump(id):
         print(e)
         return Response.make_error_resp("Error Getting Dump", code=400)
 
+@platform_crud.route('/platforms/dataProcessingFile', methods=['Get'])
+@jwt_required
+def dataProcessingFile():
+    path = "app/downloads/dataProcessing.py"
+
+    try:
+        return send_file(path, attachment_filename="dataProcessing.py", as_attachment=True)
+    except Exception as e:
+        print(e)
+        return Response.make_error_resp("Error Getting File", code=400)
 
 #==============Helper Functions==============#
 
@@ -614,3 +627,5 @@ def gcpGenVars(user, password, creds, zone, platformName, platformPath):
     account = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=creds.account)
 
     return tf.generateGCPPlatformVars(publicKey, account, platformName, creds.platform, zone, platformPath)
+
+

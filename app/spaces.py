@@ -123,6 +123,9 @@ def createAWSSpace():
         # Check the result code for errors
         if createResultCode != 0:
             # Add destroy function here
+            print("Removing Inf")
+            tf.destroy(spacePath)
+            shutil.rmtree(spacePath)
             return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
 
         # Remove the vars file
