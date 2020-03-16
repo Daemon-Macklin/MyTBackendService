@@ -33,7 +33,7 @@ resource "google_compute_attached_disk" "default" {
 
 resource "google_compute_disk" "default" {
   name  = "${var.platform_name}-storage"
-  size = 10
+  size = var.db_size
   zone = var.zone
 }
 

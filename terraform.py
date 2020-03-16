@@ -50,13 +50,15 @@ def generateAWSSpaceVars(secretKey, accessKey, publicKey, spaceName, spacePath):
     return path
 
 # Function to generate variables file for aws platforms
-def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, accessKey, platformName, platformPath):
-
+def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, accessKey, dbsize, platformName, platformPath):
+    print(dbsize)
+    print(platformName)
     string = 'variable "key_pair_id"{\n  default = "' + keyPairId + '"\n }\n\n\
     variable "aws_secret_key"{\n  default = "' + secretKey + '"\n }\n\n\
     variable "aws_access_key" { \n  default = "' + accessKey + '"\n}\n\n\
     variable "security_group_id" { \n  default = "' +securityGroupId +'"\n}\n\n\
     variable "subnet_id" { \n  default = "' + subnetId + '"\n}\n\n\
+    variable "db_size" { \n  default = "' + str(dbsize) + '"\n}\n\n\
     variable "platform_name" { \n default = "' + platformName + '" \n } \n'
 
     path = platformPath + "/variables.tf"
@@ -67,7 +69,8 @@ def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, acc
 
     return path
 
-def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabilityZone, flavorName, imageName, platformName, ipPool, securityGroup, intNetwork, publicKey, platformPath):
+def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabilityZone, flavorName, imageName, platformName, ipPool, securityGroup, intNetwork, publicKey, dbsize, platformPath):
+    print(dbsize)
 
     string = 'variable "openstack_user_name"{\n  default = "' + osUsername + '"\n }\n\n\
     variable "openstack_password"{\n  default = "' + osPassword + '"\n }\n\n\
@@ -80,6 +83,7 @@ def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabi
     variable "image_name" { \n default = "' + imageName + '"\n}\n\n\
     variable "internal_network" { \n default = "' + intNetwork + '"\n}\n\n\
     variable "public_key" { \n default = "' + publicKey + '"\n}\n\n\
+    variable "db_size" { \n  default = "' + str(dbsize) + '"\n}\n\n\
     variable "platform_name" { \n default = "' + platformName + '" \n }\n'
 
     path = platformPath + "/variables.tf"
@@ -90,7 +94,8 @@ def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabi
 
     return path
 
-def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, platformPath):
+def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, dbsize, platformPath):
+    print(dbsize)
 
     keyPath = os.path.join(platformPath, "id_rsa.pub")
     f = open(keyPath, "w+")
@@ -105,6 +110,7 @@ def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, pl
     string =  'variable "ssh_pub_file" { \n  default ="./id_rsa.pub" \n}\n\n\
     variable "platform" { \n  default = "' +platform +'"\n}\n\n\
     variable "zone" { \n  default = "' + zone + '"\n}\n\n\
+    variable "db_size" { \n  default = "' + str(dbsize) + '"\n}\n\n\
     variable "platform_name" { \n default = "' + platformName + '" \n } \n'
 
     varPath = platformPath + "/variables.tf"

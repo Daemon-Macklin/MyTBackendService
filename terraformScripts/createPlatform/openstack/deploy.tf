@@ -27,7 +27,7 @@ resource "openstack_compute_floatingip_associate_v2" "myip" {
 resource "openstack_blockstorage_volume_v2" "virtualMachineVolume" {
   name        = "${var.platform_name}-storage"
   description = ""
-  size        = 2
+  size        = var.db_size
   availability_zone =  var.availability_zone
 }
 

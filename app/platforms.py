@@ -34,6 +34,7 @@ rabbitmq username
 rabbitmq password
 rabbitmq tls
 database
+database size
 data processing script
 list of packages
 monitoring
@@ -111,6 +112,13 @@ def createPlatform():
             return Response.make_error_resp(msg="Invalid database", code=400)
     else:
         return Response.make_error_resp(msg="Database is required", code=400)
+
+    if "dbsize" in data:
+        dbsize = int(data["dbsize"])
+        if dbsize % 10 != 0 or dbsize > 100:
+            return Response.make_error_resp(msg="Database Size is invalid")
+    else:
+       return Response.make_error_resp(msg="Database Size is required", code=400)
 
     if 'packages' in data:
         packages = data['packages'].replace(" ", "").split(",")
@@ -200,17 +208,20 @@ def createPlatform():
         return Response.make_error_resp(msg="Platform Name already used", code=400)
 
     if cloudService == "aws":
-        varPath = awsGenVars(user, password, space, safePlatformName, platformPath)
+        print(dbsize)
+        varPath = awsGenVars(user, password, space, dbsize, safePlatformName, platformPath)
         if varPath == "Error Finding Creds":
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
     elif cloudService == "openstack":
-        varPath = osGenVars(user, password, space, flavorName, imageName, safePlatformName, platformPath)
+        print(dbsize)
+        varPath = osGenVars(user, password, space, flavorName, imageName, dbsize, safePlatformName, platformPath)
         if varPath == "Error Finding Creds":
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
     elif cloudService == "gcp":
-        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, platformName, platformPath)
+        print(dbsize)
+        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, dbsize, platformName, platformPath)
 
     #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
@@ -264,7 +275,7 @@ def createPlatform():
     # ------------Save Platform------------#
     newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=sid, cid=cid,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
-                                   packageList=data['packages'], database=database, id=str(uuid.uuid4()))
+                                   packageList=data['packages'], database=database, dbsize=dbsize, id=str(uuid.uuid4()))
 
     try:
         platform = Platforms.get(Platforms.id == newPlatform.id)
@@ -335,7 +346,7 @@ def removePlatform(id):
         accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                              string=creds.accessKey)
 
-        tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
+        tf.generateAWSPlatformVars("", "", "", secretKey, accessKey, 0,
                                              "", platform.dir)
 
     elif platform.cloudService == "openstack":
@@ -351,12 +362,12 @@ def removePlatform(id):
                                            string=creds.authUrl)
 
         tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone, "", "", "", space.ipPool,
-                                         space.securityGroup, space.intNetwork, "", platform.dir)
+                                         space.securityGroup, space.intNetwork, "", "", platform.dir)
 
     elif platform.cloudService == "gcp":
         creds = GCPCreds.get(GCPCreds.id == platform.cid)
 
-        gcpGenVars(user, password, creds, "", platform.name, platform.dir)
+        gcpGenVars(user, password, creds, "", "", platform.name, platform.dir)
 
     path = platform.dir
     resultCode = tf.destroy(platform.dir)
@@ -587,7 +598,8 @@ def checkPackages(packages):
 
     return ""
 
-def awsGenVars(user, password, space, safePlatformName, platformPath):
+def awsGenVars(user, password, space, dbsize, safePlatformName, platformPath):
+    print(dbsize)
 
     # Get the aws creds object
     try:
@@ -602,10 +614,11 @@ def awsGenVars(user, password, space, safePlatformName, platformPath):
                                          string=creds.accessKey)
 
     return tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
-                                         accessKey, safePlatformName, platformPath)
+                                         accessKey, dbsize, safePlatformName, platformPath)
 
 
-def osGenVars(user, password, space, flavorName, imageName, safePlatformName, platformPath):
+def osGenVars(user, password, space, flavorName, imageName, dbsize, safePlatformName, platformPath):
+    print(dbsize)
 
     try:
         creds = OpenstackCreds.get((OpenstackCreds.id == space.cid) & (OpenstackCreds.uid == user.uid))
@@ -618,14 +631,16 @@ def osGenVars(user, password, space, flavorName, imageName, safePlatformName, pl
     publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=user.publicKey)
 
     return tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone,
-                                     flavorName, imageName, safePlatformName, space.ipPool, space.securityGroup, space.intNetwork, publicKey, platformPath)
+                                     flavorName, imageName, safePlatformName, space.ipPool, space.securityGroup,
+                                     space.intNetwork, publicKey, dbsize, platformPath)
 
 
-def gcpGenVars(user, password, creds, zone, platformName, platformPath):
+def gcpGenVars(user, password, creds, zone, dbsize, platformName, platformPath):
+    print(dbsize)
 
     publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=user.publicKey)
     account = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=creds.account)
 
-    return tf.generateGCPPlatformVars(publicKey, account, platformName, creds.platform, zone, platformPath)
+    return tf.generateGCPPlatformVars(publicKey, account, platformName, creds.platform, zone, dbsize, platformPath)
 
 
