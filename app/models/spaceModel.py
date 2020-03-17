@@ -29,5 +29,5 @@ class SpaceOS(BaseModel):
     intNetwork = CharField()
     securityGroup = CharField()
     uid = ForeignKeyField(model=Users)
-    cid = ForeignKeyField(model=OpenstackCreds)
+    cid = ForeignKeyField(model=OSCreds)
     id = UUIDField(unique=True, primary_key=True)

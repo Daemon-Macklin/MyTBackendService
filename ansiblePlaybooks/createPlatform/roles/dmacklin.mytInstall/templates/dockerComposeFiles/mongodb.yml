@@ -45,6 +45,8 @@ services:
       - myt-network
     ports:
       - "3000:3000"
+    environment:
+      - "GF_INSTALL_PLUGINS=grafana-simple-json-datasource"
     container_name: grafana
 networks:
   myt-network:
