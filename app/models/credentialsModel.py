@@ -18,7 +18,7 @@ class AWSCreds(BaseModel):
     id = UUIDField(unique=True, primary_key=True)
 
 
-class OpenstackCreds(BaseModel):
+class OSCreds(BaseModel):
     name = CharField()
     username = CharField()
     password = CharField()

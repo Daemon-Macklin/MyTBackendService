@@ -156,7 +156,7 @@ def createOSCredentials():
 
         # Create the credentials object
         try:
-            newCreds = OpenstackCreds.create(name=name, username=osUsername, password=osPassword, authUrl=authUrl, uid=uid,
+            newCreds = OSCreds.create(name=name, username=osUsername, password=osPassword, authUrl=authUrl, uid=uid,
                                              id=str(uuid.uuid4()))
         except Exception as e:
             print(e)
@@ -164,8 +164,8 @@ def createOSCredentials():
 
         # Check the creds are there
         try:
-            creds = OpenstackCreds.get(OpenstackCreds.id == newCreds.id)
-        except OpenstackCreds.DoesNotExist:
+            creds = OSCreds.get(OSCreds.id == newCreds.id)
+        except OSCreds.DoesNotExist:
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
         # Return the name and id of the creds
@@ -238,7 +238,7 @@ def createGCPCredentials():
         # Check the creds are there
         try:
             creds = GCPCreds.get(GCPCreds.id == newCreds.id)
-        except OpenstackCreds.DoesNotExist:
+        except GCPCreds.DoesNotExist:
             return Response.make_error_resp(msg="Error Finding Creds", code=400)
 
         # Return the name and id of the creds
@@ -275,7 +275,7 @@ def getAllCreds(uid):
         }
         response.append(cred)
 
-    osQuery = OpenstackCreds.select(OpenstackCreds.name, OpenstackCreds.id).where(OpenstackCreds.uid == user.uid)
+    osQuery = OSCreds.select(OSCreds.name, OSCreds.id).where(OSCreds.uid == user.uid)
     for creds in osQuery:
         cred = {
             "name": creds.name,
@@ -314,7 +314,7 @@ def removeCreds(type, id):
             return Response.make_success_resp("Credentials have been removed")
 
     if type == "Openstack":
-        cred = OpenstackCreds.get(OpenstackCreds.id == id)
+        cred = OSCreds.get(OSCreds.id == id)
         spaces = SpaceOS.select().where(SpaceOS.cid == cred.id)
         if len(spaces) != 0:
             return Response.make_error_resp(msg="Please Delete Spaces using these credentials before deleting "

@@ -57,7 +57,7 @@ def createPlatform():
     externalVolume = None
 
     if 'platformName' in data:
-        platformName = data["platformName"]
+        platformName = data["platformName"] + tf.genComponentID()
     else:
         return Response.make_error_resp(msg="Platform Requires Name", code=400)
 
@@ -221,7 +221,7 @@ def createPlatform():
 
     elif cloudService == "gcp":
         print(dbsize)
-        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, dbsize, platformName, platformPath)
+        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, dbsize, safeplatformName, platformPath)
 
     #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
@@ -273,7 +273,7 @@ def createPlatform():
     print(aberror)
 
     # ------------Save Platform------------#
-    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=sid, cid=cid,
+    newPlatform = Platforms.create(dir=platformPath, name=safePlatformName, uid=user.uid, sid=sid, cid=cid,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
                                    packageList=data['packages'], database=database, dbsize=dbsize, id=str(uuid.uuid4()))
 
@@ -352,7 +352,7 @@ def removePlatform(id):
     elif platform.cloudService == "openstack":
 
         space = SpaceOS.get((SpaceOS.id == platform.sid) & (SpaceOS.uid == uid))
-        creds = OpenstackCreds.get(OpenstackCreds.id == space.cid)
+        creds = OSCreds.get(OSCreds.id == space.cid)
 
         osUsername = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                               string=creds.username)
@@ -621,8 +621,8 @@ def osGenVars(user, password, space, flavorName, imageName, dbsize, safePlatform
     print(dbsize)
 
     try:
-        creds = OpenstackCreds.get((OpenstackCreds.id == space.cid) & (OpenstackCreds.uid == user.uid))
-    except OpenstackCreds.DoesNotExist:
+        creds = OSCreds.get((OSCreds.id == space.cid) & (OSCreds.uid == user.uid))
+    except OSCreds.DoesNotExist:
         return "Error Finding Creds"
 
     osUsername = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.username)

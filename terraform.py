@@ -1,5 +1,7 @@
 from python_terraform import Terraform
 import os
+from random import choice
+from string import ascii_uppercase
 
 # Function to initialize terraform directory
 def init(pathtoPlatform):
@@ -119,3 +121,6 @@ def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, db
     f.close()
 
     return varPath, accountPath, keyPath
+
+def genComponentID():
+    return ''.join(choice(ascii_uppercase) for i in range(12))

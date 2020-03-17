@@ -62,7 +62,7 @@ def createAWSSpace():
     #    return Response.make_error_resp(msg="Cloud Service Choice is required", code=400)
 
     if 'spaceName' in data:
-        spaceName = data['spaceName']
+        spaceName = data['spaceName'] + tf.genComponentID()
     else:
         return Response.make_error_resp(msg="Name of space required", code=400)
 
@@ -116,6 +116,8 @@ def createAWSSpace():
 
         # Init the terraform directory
         initResultCode = tf.init(spacePath)
+
+        print(initResultCode)
 
         # Run the terrafom script
         output, createResultCode = tf.create(spacePath)
@@ -228,8 +230,8 @@ def createOSSpace():
 
         # Get the aws creds object
         try:
-            creds = OpenstackCreds.get((OpenstackCreds.id == cid) & (OpenstackCreds.uid == uid))
-        except OpenstackCreds.DoesNotExist:
+            creds = OSCreds.get((OSCreds.id == cid) & (OSCreds.uid == uid))
+        except OSCreds.DoesNotExist:
             return Response.make_error_resp(msg="Error Finding Creds", code=404)
 
         newSpace = SpaceOS.create(name=name, tenantName=tenantName, availabilityZone=availabilityZone, ipPool=ipPool, securityGroup=securityGroup, intNetwork=intNetwork, uid=uid, cid=cid, id=str(uuid.uuid4()))
