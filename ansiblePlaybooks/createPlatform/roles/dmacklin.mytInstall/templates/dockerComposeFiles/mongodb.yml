@@ -40,7 +40,8 @@ services:
     restart: on-failure
     container_name: dataprocessing
   grafana:
-    image: grafana/grafana
+    build: ./grafana
+    image: mytgrafana
     networks:
       - myt-network
     ports:
@@ -48,6 +49,13 @@ services:
     environment:
       - "GF_INSTALL_PLUGINS=grafana-simple-json-datasource"
     container_name: grafana
+  mongoproxy:
+    build: ./mongoProxy
+    image: mongoproxy
+    networks:
+     - myt-network
+    ports:
+     - "3333:3333"
 networks:
   myt-network:
     name: myt-network

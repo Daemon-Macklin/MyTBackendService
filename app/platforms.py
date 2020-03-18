@@ -221,7 +221,7 @@ def createPlatform():
 
     elif cloudService == "gcp":
         print(dbsize)
-        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, dbsize, safeplatformName, platformPath)
+        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, dbsize, safePlatformName, platformPath)
 
     #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
