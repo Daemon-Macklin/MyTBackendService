@@ -15,7 +15,7 @@ apt-get install iputils-ping -y && \
 # ssh
 apt-get install openssh-server -y && \
 # sqlite
-apt-get install sqlite3
+apt-get install sqlite3 -y
 
 ################################
 # Install Terraform

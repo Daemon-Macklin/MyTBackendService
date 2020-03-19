@@ -18,12 +18,17 @@ class AWSCreds(BaseModel):
     id = UUIDField(unique=True, primary_key=True)
 
 
-class OpenstackCreds(BaseModel):
+class OSCreds(BaseModel):
     name = CharField()
-    username: CharField()
-    password: CharField()
-    authUrl: CharField()
-    key_pair: CharField()
-    tenantName: CharField()
+    username = CharField()
+    password = CharField()
+    authUrl = CharField()
+    uid = ForeignKeyField(model=Users)
+    id = UUIDField(unique=True, primary_key=True)
+
+class GCPCreds(BaseModel):
+    name = CharField()
+    account = BlobField()
+    platform = CharField()
     uid = ForeignKeyField(model=Users)
     id = UUIDField(unique=True, primary_key=True)

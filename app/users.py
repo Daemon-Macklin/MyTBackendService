@@ -233,7 +233,8 @@ def removeUser(uid):
     if pbkdf2_sha256.verify(password, user.password):
 
         AWSCreds.delete().where(AWSCreds.uid == user.uid)
-        OpenstackCreds.delete().where(OpenstackCreds.uid == user.uid)
+        OSCreds.delete().where(OSCreds.uid == user.uid)
+        GCPCreds.delete().where(GCPCreds.uid == user.uid)
 
         user.delete_instance()
         return Response.make_success_resp("User has been removed")

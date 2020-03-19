@@ -1,0 +1,25 @@
+---
+
+- name: Generate Dump
+  command: sudo docker exec influxdb influxd backup -portable -database MyTData /influxdump
+
+- name: Get Dump
+  command: docker cp influxdb:/influxdump ~/influxdump
+
+- name: Zip File
+  archive:
+    path: ~/influxdump
+    dest: ~/influxdump.zip
+    format: zip
+    remove: yes
+
+- name: downoad zip
+  fetch:
+    flat: yes
+    src: ~/influxdump.zip
+    dest: ./influxdump.zip
+
+- name: Remove Zip
+  file:
+    path: ~/influxdump.zip
+    state: absent

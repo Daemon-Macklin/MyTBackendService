@@ -19,7 +19,7 @@ resource "aws_internet_gateway" "gw" {
 resource "aws_subnet" "my_subnet" {
   vpc_id = aws_vpc.my_vpc.id
   cidr_block = "172.16.10.0/24"
-  availability_zone = "eu-west-1a"
+  availability_zone = var.availability_zone
   map_public_ip_on_launch = true
   tags = {
     Name = "${var.space_name}-Subnet"
@@ -48,6 +48,13 @@ resource "aws_security_group" "MyT-SG" {
     from_port = 5672
     protocol = "tcp"
     to_port = 5672
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+    ingress {
+    from_port = 5671
+    protocol = "tcp"
+    to_port = 5671
     cidr_blocks = ["0.0.0.0/0"]
   }
 
