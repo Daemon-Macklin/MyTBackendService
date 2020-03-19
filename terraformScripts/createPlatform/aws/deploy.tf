@@ -12,7 +12,7 @@ resource "aws_instance" "web" {
 
 resource "aws_ebs_volume" "db-volume" {
   availability_zone = "eu-west-1a"
-  size              = 10
+  size              = var.db_size
   tags = {
     Name = "${var.platform_name}-storage"
   }

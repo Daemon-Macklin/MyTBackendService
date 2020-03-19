@@ -5,9 +5,9 @@ import terraform as tf
 import ansibleCon as ab
 from app.config import URL_PREFIX
 from shutil import copyfile
-from .models.credentialsModel import AWSCreds, OpenstackCreds
+from .models.credentialsModel import *
 from .models.userModel import Users
-from .models.spaceModel import SpaceAWS
+from .models.spaceModel import *
 from .models.platformModel import Platforms
 from passlib.hash import pbkdf2_sha256
 import encryption
@@ -34,10 +34,15 @@ rabbitmq username
 rabbitmq password
 rabbitmq tls
 database
+database size
 data processing script
 list of packages
 monitoring
 monitoring freq
+image name
+flavor name
+zone
+cid
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -52,7 +57,7 @@ def createPlatform():
     externalVolume = None
 
     if 'platformName' in data:
-        platformName = data["platformName"]
+        platformName = data["platformName"] + tf.genComponentID()
     else:
         return Response.make_error_resp(msg="Platform Requires Name", code=400)
 
@@ -82,7 +87,7 @@ def createPlatform():
     if 'sid' in data:
         sid = data['sid']
     else:
-        return Response.make_error_resp(msg="Space ID is required", code=400)
+        sid = ""
 
     if "rabbitUser" in data:
         rabbitUser = data['rabbitUser']
@@ -108,6 +113,13 @@ def createPlatform():
     else:
         return Response.make_error_resp(msg="Database is required", code=400)
 
+    if "dbsize" in data:
+        dbsize = int(data["dbsize"])
+        if dbsize % 10 != 0 or dbsize > 100:
+            return Response.make_error_resp(msg="Database Size is invalid")
+    else:
+       return Response.make_error_resp(msg="Database Size is required", code=400)
+
     if 'packages' in data:
         packages = data['packages'].replace(" ", "").split(",")
     else:
@@ -121,6 +133,7 @@ def createPlatform():
             monitoringFreq = "30"
     else:
         monitoring = "false"
+        monitoringFreq = "30"
 
     if len(packages) != 0:
         issue = checkPackages(packages)
@@ -129,51 +142,88 @@ def createPlatform():
 
     packages = packages + ["pika==1.1.0", "influxdb", "pymongo"]
 
-    try:
-        space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
-    except SpaceAWS.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Space", code=400)
+    safePlatformName = platformName.replace('/', '_')
+    safePlatformName = safePlatformName.replace(' ', '_')
 
-    # Get the aws creds object
-    try:
-        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == uid))
-    except AWSCreds.DoesNotExist:
-        return Response.make_error_resp(msg="Error Finding Creds", code=400)
-
-    # Decrypt the user data
-    secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                         string=creds.secretKey)
-    accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                         string=creds.accessKey)
-    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
-                                          string=user.privateKey)
-
-    safePlaformName = platformName.replace('/', '_')
-    safePlaformName = safePlaformName.replace(' ', '_')
-
-    platformPath = os.path.join(space.dir, "platforms", safePlaformName)
-    try:
-        os.makedirs(platformPath)
-    except FileExistsError as e:
-        return Response.make_error_resp(msg="Platform Name already used", code=400)
-    except:
-        return Response.make_error_resp(msg="Error Creating Platform Directory", code=400)
-
-    validPlatforms = ["aws", "openstack"]
+    cid = ""
+    space = ""
+    # ------------Terraform Setup------------#
+    validPlatforms = ["aws", "openstack", "gcp"]
     if cloudService not in validPlatforms:
         return Response.make_error_resp(msg="invalid cloudService", code=400)
 
+    # Define Terraform Variables
     tfPath = ""
+    platformPath = ""
     if cloudService == "aws":
         tfPath = "terraformScripts/createPlatform/aws"
         externalVolume = "/dev/nvme1n1"
-        varPath = tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
-                                             accessKey, safePlaformName, platformPath)
+        try:
+            space = SpaceAWS.get((SpaceAWS.id == sid) & (SpaceAWS.uid == uid))
+        except SpaceAWS.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Space", code=400)
+        platformPath = os.path.join(space.dir, "platforms", safePlatformName)
 
     elif cloudService == "openstack":
         tfPath = "terraformScripts/createPlatform/openstack"
         externalVolume = "/dev/vdb"
+        if 'flavorName' in data:
+            flavorName = data['flavorName']
+        else:
+            return Response.make_error_resp(msg="Flavor Name Required for Openstack")
 
+        if 'imageName' in data:
+            imageName = data['imageName']
+        else:
+            return Response.make_error_resp(msg="Image Name Required for Openstack")
+
+        try:
+            space = SpaceOS.get((SpaceOS.id == sid) & (SpaceOS.uid == uid))
+        except SpaceOS.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Space", code=400)
+        platformPath = os.path.join("openstack", "platforms", safePlatformName)
+
+    elif cloudService == "gcp":
+        tfPath = "terraformScripts/createPlatform/gcp"
+        externalVolume = "/dev/sdb"
+        if 'zone' in data:
+            zone = data['zone']
+        else:
+            return Response.make_error_resp(msg="Zone Required for GCP")
+
+        if 'cid' in data:
+            cid = data['cid']
+        else:
+            return Response.make_error_resp(msg="Credentials Required for GCP")
+
+        try:
+            creds = GCPCreds.get((GCPCreds.id == cid) & (GCPCreds.uid == uid))
+        except SpaceOS.DoesNotExist:
+            return Response.make_error_resp(msg="Error Finding Credentials", code=400)
+        platformPath = os.path.join("gcp", "platforms", safePlatformName)
+
+    try:
+        shutil.copytree(tfPath, platformPath)
+    except FileExistsError as e:
+        return Response.make_error_resp(msg="Platform Name already used", code=400)
+
+    if cloudService == "aws":
+        print(dbsize)
+        varPath = awsGenVars(user, password, space, dbsize, safePlatformName, platformPath)
+        if varPath == "Error Finding Creds":
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+    elif cloudService == "openstack":
+        print(dbsize)
+        varPath = osGenVars(user, password, space, flavorName, imageName, dbsize, safePlatformName, platformPath)
+        if varPath == "Error Finding Creds":
+            return Response.make_error_resp(msg="Error Finding Creds", code=400)
+
+    elif cloudService == "gcp":
+        print(dbsize)
+        varPath, accountPath, keyPath = gcpGenVars(user, password, creds, zone, dbsize, safePlatformName, platformPath)
+
+    #------------Ansible Setup------------#
     createAnsibleFiles = "ansiblePlaybooks/createPlatform"
     ansiblePath = os.path.join(platformPath, "ansible", "createPlatform")
 
@@ -188,41 +238,51 @@ def createPlatform():
 
     ab.generateRequirementsFile(packages, ansiblePath, "dmacklin.mytInstall")
 
-    requiredFiles = ["deploy.tf", "provider.tf"]
-
-    for file in requiredFiles:
-        copyfile(tfPath + "/" + file, platformPath + "/" + file)
-
+    # ------------Terraform Create------------#
     initResultCode = tf.init(platformPath)
 
     output, createResultCode = tf.create(platformPath)
 
+    print(createResultCode)
+    if createResultCode != 0:
+        # Add destroy function here
+        print("Removing Inf")
+        tf.destroy(platformPath)
+        shutil.rmtree(platformPath)
+        return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
+
     # Remove the vars file
     os.remove(varPath)
 
-    if createResultCode != 0:
-        # Add destroy function here
-        return Response.make_error_resp(msg="Error Creating Infrastructure", code=400)
+    if cloudService == "gcp":
+        os.remove(accountPath)
+        os.remove(keyPath)
 
     isUp = serverCheck(output["instance_ip_address"]["value"])
 
     if not isUp:
         return Response.make_error_resp(msg="Error Contacting Server")
 
+    # ------------Ansible Create------------#
+    privateKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                          string=user.privateKey)
+
     aboutput, aberror = ab.runPlaybook(output["instance_ip_address"]["value"], privateKey, ansiblePath, "installService")
 
     print(aboutput)
     print(aberror)
 
-    newPlatform = Platforms.create(dir=platformPath, name=platformName, uid=user.uid, sid=space.id,
+    # ------------Save Platform------------#
+    newPlatform = Platforms.create(dir=platformPath, name=safePlatformName, uid=user.uid, sid=sid, cid=cid,
                                    cloudService=cloudService, ipAddress=output["instance_ip_address"]["value"],
-                                   packageList=data['packages'], database=database, id=str(uuid.uuid4()))
+                                   packageList=data['packages'], database=database, dbsize=dbsize, id=str(uuid.uuid4()))
 
     try:
         platform = Platforms.get(Platforms.id == newPlatform.id)
     except Platforms.DoesNotExist:
         return Response.make_error_resp(msg="Platform Not Found", code=400)
 
+    # ------------Return Data------------#
     if rabbitTLS == "true":
         filename = "cert_rabbitmq.zip"
         dumpPath = os.path.join(ansiblePath, filename)
@@ -286,16 +346,36 @@ def removePlatform(id):
         accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                              string=creds.accessKey)
 
-        tf.generateAWSPlatformVars("", "", "", secretKey, accessKey,
+        tf.generateAWSPlatformVars("", "", "", secretKey, accessKey, 0,
                                              "", platform.dir)
 
-        path = platform.dir
-        resultCode = tf.destroy(platform.dir)
+    elif platform.cloudService == "openstack":
 
-        if resultCode != 0:
-            return Response.make_error_resp(msg="Error deleting platform")
+        space = SpaceOS.get((SpaceOS.id == platform.sid) & (SpaceOS.uid == uid))
+        creds = OSCreds.get(OSCreds.id == space.cid)
 
-        platform.delete_instance()
+        osUsername = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                              string=creds.username)
+        osPassword = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                              string=creds.password)
+        authUrl = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                           string=creds.authUrl)
+
+        tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone, "", "", "", space.ipPool,
+                                         space.securityGroup, space.intNetwork, "", "", platform.dir)
+
+    elif platform.cloudService == "gcp":
+        creds = GCPCreds.get(GCPCreds.id == platform.cid)
+
+        gcpGenVars(user, password, creds, "", "", platform.name, platform.dir)
+
+    path = platform.dir
+    resultCode = tf.destroy(platform.dir)
+
+    if resultCode != 0:
+        return Response.make_error_resp(msg="Error deleting platform")
+
+    platform.delete_instance()
 
     if path != "":
         shutil.rmtree(path)
@@ -480,6 +560,16 @@ def databaseDump(id):
         print(e)
         return Response.make_error_resp("Error Getting Dump", code=400)
 
+@platform_crud.route('/platforms/dataProcessingFile', methods=['Get'])
+@jwt_required
+def dataProcessingFile():
+    path = "app/downloads/dataProcessing.py"
+
+    try:
+        return send_file(path, attachment_filename="dataProcessing.py", as_attachment=True)
+    except Exception as e:
+        print(e)
+        return Response.make_error_resp("Error Getting File", code=400)
 
 #==============Helper Functions==============#
 
@@ -507,3 +597,50 @@ def checkPackages(packages):
             return package
 
     return ""
+
+def awsGenVars(user, password, space, dbsize, safePlatformName, platformPath):
+    print(dbsize)
+
+    # Get the aws creds object
+    try:
+        creds = AWSCreds.get((AWSCreds.id == space.cid) & (AWSCreds.uid == user.uid))
+    except AWSCreds.DoesNotExist:
+        return "Error Finding Creds"
+
+    # Decrypt the user data
+    secretKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.secretKey)
+    accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
+                                         string=creds.accessKey)
+
+    return tf.generateAWSPlatformVars(space.keyPairId, space.securityGroupId, space.subnetId, secretKey,
+                                         accessKey, dbsize, safePlatformName, platformPath)
+
+
+def osGenVars(user, password, space, flavorName, imageName, dbsize, safePlatformName, platformPath):
+    print(dbsize)
+
+    try:
+        creds = OSCreds.get((OSCreds.id == space.cid) & (OSCreds.uid == user.uid))
+    except OSCreds.DoesNotExist:
+        return "Error Finding Creds"
+
+    osUsername = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.username)
+    osPassword = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.password)
+    authUrl = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=creds.authUrl)
+    publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=user.publicKey)
+
+    return tf.generateOSPlatformVars(osUsername, osPassword, space.tenantName, authUrl, space.availabilityZone,
+                                     flavorName, imageName, safePlatformName, space.ipPool, space.securityGroup,
+                                     space.intNetwork, publicKey, dbsize, platformPath)
+
+
+def gcpGenVars(user, password, creds, zone, dbsize, platformName, platformPath):
+    print(dbsize)
+
+    publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=user.publicKey)
+    account = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,string=creds.account)
+
+    return tf.generateGCPPlatformVars(publicKey, account, platformName, creds.platform, zone, dbsize, platformPath)
+
+
