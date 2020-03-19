@@ -36,11 +36,12 @@ def destroy(pathToInf):
     return return_code
 
 # Function to generate variables file for aws spaces
-def generateAWSSpaceVars(secretKey, accessKey, publicKey, spaceName, spacePath):
+def generateAWSSpaceVars(secretKey, accessKey, publicKey, availability_zone, spaceName, spacePath):
 
     string = 'variable "aws_secret_key"{\n  default = "' + secretKey + '"\n }\n\n\
     variable "aws_access_key" { \n  default = "' +accessKey +'"\n}\n\n\
     variable "public_key" { \n  default = "' + publicKey + '"\n}\n\n\
+    variable "availability_zone" { \n  default = "' + availability_zone + '"\n}\n\n\
     variable "space_name" { \n default = "' + spaceName + '" \n } \n'
 
     path = spacePath + "/variables.tf"
@@ -63,6 +64,7 @@ def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, acc
     variable "db_size" { \n  default = "' + str(dbsize) + '"\n}\n\n\
     variable "platform_name" { \n default = "' + platformName + '" \n } \n'
 
+    availability_zone
     path = platformPath + "/variables.tf"
 
     f = open(path, "w")

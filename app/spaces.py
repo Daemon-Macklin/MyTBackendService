@@ -27,6 +27,7 @@ user password
 space name
 Returns:
 id
+availability_zone
 keypair id
 subnet id
 security group id
@@ -65,6 +66,11 @@ def createAWSSpace():
         spaceName = data['spaceName'] + tf.genComponentID()
     else:
         return Response.make_error_resp(msg="Name of space required", code=400)
+
+    if 'availability_zone' in data:
+        availability_zone = data["availability_zone"]
+    else:
+        return Response.make_error_resp(msg="Availability Zone is required", code=400)
 
     # Get rid of unsafe characters in the name
     safeSpaceName = spaceName.replace('/', '_')
@@ -112,7 +118,7 @@ def createAWSSpace():
         publicKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey, string=user.publicKey)
 
         # Generate the variables file
-        varPath = tf.generateAWSSpaceVars(secretKey, accessKey, publicKey, safeSpaceName, spacePath)
+        varPath = tf.generateAWSSpaceVars(secretKey, accessKey, publicKey, availability_zone, safeSpaceName, spacePath)
 
         # Init the terraform directory
         initResultCode = tf.init(spacePath)
@@ -140,7 +146,8 @@ def createAWSSpace():
 
         # Create the space object
         newSpace = SpaceAWS.create(dir=spacePath, keyPairId=keyPairId, securityGroupId=securityGroupId,
-                                   name=safeSpaceName, subnetId=subnetId, uid=uid, cid=cid, id=str(uuid.uuid4()))
+                                   name=safeSpaceName, subnetId=subnetId, uid=uid, availabilityZone=availability_zone,
+                                   cid=cid, id=str(uuid.uuid4()))
 
         # Get the new space object
         try:
@@ -300,7 +307,7 @@ def removeAWSSpace(id):
     accessKey = encryption.decryptString(password=password, salt=user.keySalt, resKey=user.resKey,
                                          string=creds.accessKey)
 
-    tf.generateAWSSpaceVars(secretKey, accessKey, "", "", space.dir)
+    tf.generateAWSSpaceVars(secretKey, accessKey, "", "", "", space.dir)
 
     path = space.dir
     resultCode = tf.destroy(space.dir)
