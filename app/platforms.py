@@ -106,7 +106,7 @@ def createPlatform():
         rabbitTLS = "false"
 
     if "database" in data:
-        validDbs = ["influxdb", "mongodb"]
+        validDbs = ["influxdb", "mongodb", "mysqldb", "timescaledb"]
         database = data['database']
         if database not in validDbs:
             return Response.make_error_resp(msg="Invalid database", code=400)

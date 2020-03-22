@@ -64,7 +64,6 @@ def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, acc
     variable "db_size" { \n  default = "' + str(dbsize) + '"\n}\n\n\
     variable "platform_name" { \n default = "' + platformName + '" \n } \n'
 
-    availability_zone
     path = platformPath + "/variables.tf"
 
     f = open(path, "w")
