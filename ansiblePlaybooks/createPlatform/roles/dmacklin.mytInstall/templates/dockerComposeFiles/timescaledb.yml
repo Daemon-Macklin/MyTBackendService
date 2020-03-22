@@ -18,17 +18,16 @@ services:
     volumes:
       - ./cert_rabbitmq:/cert_rabbitmq
     container_name: rabbitmq
-  mongodb:
-    image: mongo
+  timescaledb:
+    image: timescale/timescaledb
     ports:
-      - "27017:27017"
+      - "5342:5432"
     networks:
       - myt-network
-    container_name: mongodb
+    container_name: timescaledb
     volumes:
-      - /var/lib/mytDatabase:/var/lib/mongodb
-    environment:
-      - MONGO_INITDB_DATABASE=MyTData
+      - /var/lib/mytDatabase:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
   dataprocessing:
     build: .
     image: dataprocessing
@@ -36,26 +35,16 @@ services:
       - myt-network
     depends_on:
       - broker
-      - mongodb
+      - timescaledb
     restart: on-failure
     container_name: dataprocessing
   grafana:
-    build: ./grafana
-    image: mytgrafana
+    image: grafana/grafana
     networks:
       - myt-network
     ports:
       - "3000:3000"
-    environment:
-      - "GF_INSTALL_PLUGINS=grafana-simple-json-datasource"
     container_name: grafana
-  mongoproxy:
-    build: ./mongoProxy
-    image: mongoproxy
-    networks:
-     - myt-network
-    ports:
-     - "3333:3333"
 networks:
   myt-network:
     name: myt-network

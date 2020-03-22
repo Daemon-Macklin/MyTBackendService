@@ -83,9 +83,9 @@ def setRabbitmqComposeData(rabbitUser, rabbitPass, database, ansiblePath):
         # read a list of lines into data
         data = file.readlines()
 
-    data[22] = "    environment: \n"
-    data[26] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
-    data[27] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
+    data[11] = "    environment: \n"
+    data[15] = "      - RABBITMQ_DEFAULT_USER=" + rabbitUser + "\n"
+    data[16] = "      - RABBITMQ_DEFAULT_PASS=" + rabbitPass + "\n"
 
 
     # and write everything back
@@ -99,10 +99,10 @@ def enableRabbitMQTLS(database, ansiblePath):
     with open(dcPath, 'r') as file:
         # read a list of lines into data
         data = file.readlines()
-    data[22] = "    environment: \n"
-    data[23] = "      - RABBITMQ_SSL_CERTFILE=/cert_rabbitmq/cert.pem\n"
-    data[24] = "      - RABBITMQ_SSL_KEYFILE=/cert_rabbitmq/key.pem\n"
-    data[25] = "      - RABBITMQ_SSL_CACERTFILE=/cert_rabbitmq/cacert.pem\n"
+    data[11] = "    environment: \n"
+    data[12] = "      - RABBITMQ_SSL_CERTFILE=/cert_rabbitmq/cert.pem\n"
+    data[13] = "      - RABBITMQ_SSL_KEYFILE=/cert_rabbitmq/key.pem\n"
+    data[14] = "      - RABBITMQ_SSL_CACERTFILE=/cert_rabbitmq/cacert.pem\n"
 
     # and write everything back
     with open(dcPath, 'w') as file:
