@@ -154,7 +154,7 @@ def createPlatform():
         if issue != "":
             return Response.make_error_resp(msg=issue + " Package not valid", code=400)
 
-    packages = packages + ["pika==1.1.0", "influxdb", "pymongo", "mysql-connector"]
+    packages = packages + ["pika==1.1.0", "influxdb", "pymongo", "mysql-connector", "psycopg2"]
 
     safePlatformName = platformName.replace('/', '_')
     safePlatformName = safePlatformName.replace(' ', '_')
