@@ -135,3 +135,23 @@ def updateDBDumpVars(database, ansiblePath):
     # and write everything back
     with open(ansiblePath, 'w') as file:
         file.writelines(data)
+
+def createSQLInit(ansiblePath, fields, database):
+
+    if database == "timescaledb":
+        path = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dbInitScripts", "timescaledb.sql")
+        for key, value in fields.items():
+            if value == "int":
+                fields[key] = "integer"
+    else:
+        path = os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dbInitScripts", "mysqldb.sql")
+
+    fieldsStr = ""
+    for key, value in fields.items():
+        fieldsStr = fieldsStr + "         " + key + " " + value + ",\n"
+
+    fieldsStr = fieldsStr + "        PRIMARY KEY (id));\n"
+
+    # and write everything back
+    with open(path, 'a') as file:
+        file.write(fieldsStr)

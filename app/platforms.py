@@ -16,6 +16,7 @@ import time
 import uuid
 import shutil
 from flask_jwt_extended import jwt_required
+import json
 import datetime
 import subprocess
 
@@ -43,6 +44,7 @@ image name
 flavor name
 zone
 cid
+dict of fields
 """
 @platform_crud.route('platform/create', methods=["Post"])
 @jwt_required
@@ -113,6 +115,18 @@ def createPlatform():
     else:
         return Response.make_error_resp(msg="Database is required", code=400)
 
+    if "dbFields" in data:
+        if database == "mysqldb" or database == "timescaledb":
+            try:
+                dbFields = json.loads(data["dbFields"])
+            except Exception as e:
+                print(e)
+                return Response.make_error_resp(msg="Invalid DB fields", code=400)
+        else:
+            dbFields = None
+    else:
+        dbFields = None
+
     if "dbsize" in data:
         dbsize = int(data["dbsize"])
         if dbsize % 10 != 0 or dbsize > 100:
@@ -140,7 +154,7 @@ def createPlatform():
         if issue != "":
             return Response.make_error_resp(msg=issue + " Package not valid", code=400)
 
-    packages = packages + ["pika==1.1.0", "influxdb", "pymongo"]
+    packages = packages + ["pika==1.1.0", "influxdb", "pymongo", "mysql-connector"]
 
     safePlatformName = platformName.replace('/', '_')
     safePlatformName = safePlatformName.replace(' ', '_')
@@ -231,6 +245,9 @@ def createPlatform():
 
     if script:
         script.save(os.path.join(ansiblePath, "roles", "dmacklin.mytInstall", "templates", "dataProcessing.py"))
+
+    if dbFields:
+        ab.createSQLInit(ansiblePath, dbFields, database)
 
     ab.updateAnsiblePlaybookVars(cloudService, externalVolume, database, rabbitTLS, monitoring, monitoringFreq, ansiblePath)
 

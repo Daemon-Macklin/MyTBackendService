@@ -54,8 +54,6 @@ def generateAWSSpaceVars(secretKey, accessKey, publicKey, availability_zone, spa
 
 # Function to generate variables file for aws platforms
 def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, accessKey, dbsize, platformName, platformPath):
-    print(dbsize)
-    print(platformName)
     string = 'variable "key_pair_id"{\n  default = "' + keyPairId + '"\n }\n\n\
     variable "aws_secret_key"{\n  default = "' + secretKey + '"\n }\n\n\
     variable "aws_access_key" { \n  default = "' + accessKey + '"\n}\n\n\
@@ -73,7 +71,6 @@ def generateAWSPlatformVars(keyPairId, securityGroupId, subnetId, secretKey, acc
     return path
 
 def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabilityZone, flavorName, imageName, platformName, ipPool, securityGroup, intNetwork, publicKey, dbsize, platformPath):
-    print(dbsize)
 
     string = 'variable "openstack_user_name"{\n  default = "' + osUsername + '"\n }\n\n\
     variable "openstack_password"{\n  default = "' + osPassword + '"\n }\n\n\
@@ -98,7 +95,7 @@ def generateOSPlatformVars(osUsername, osPassword, tenantName, authUrl, availabi
     return path
 
 def generateGCPPlatformVars(publicKey, account, platformName, platform, zone, dbsize, platformPath):
-    print(dbsize)
+
 
     keyPath = os.path.join(platformPath, "id_rsa.pub")
     f = open(keyPath, "w+")
