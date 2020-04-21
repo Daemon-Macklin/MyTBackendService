@@ -1,16 +1,5 @@
 version: '3.5'
 services:
-  influxdb:
-    image: influxdb
-    ports:
-      - "8086:8086"
-    networks:
-      - myt-network
-    container_name: influxdb
-    volumes:
-      - /var/lib/mytDatabase:/var/lib/influxdb
-    environment:
-      -  INFLUXDB_DB=MyTData
   broker:
     image: rabbitmq
     hostname: rabbitmq
@@ -29,6 +18,17 @@ services:
     volumes:
       - ./cert_rabbitmq:/cert_rabbitmq
     container_name: rabbitmq
+  influxdb:
+    image: influxdb
+    ports:
+      - "8086:8086"
+    networks:
+      - myt-network
+    container_name: influxdb
+    volumes:
+      - /var/lib/mytDatabase:/var/lib/influxdb
+    environment:
+      - INFLUXDB_DB=MyTData
   dataprocessing:
     build: .
     image: dataprocessing

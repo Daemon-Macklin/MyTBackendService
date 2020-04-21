@@ -49,6 +49,18 @@
     remote_src: yes
   when: rabbitmqTLS == "true"
 
+- name: Get timescale init.sql
+  copy:
+    src: ../templates/dbInitScripts/timescaledb.sql
+    dest: /opt/MyTApplication/init.sql
+  when: database == "timescaledb"
+
+- name: Get mysql init.sql
+  copy:
+    src: ../templates/dbInitScripts/mysqldb.sql
+    dest: /opt/MyTApplication/init.sql
+  when: database == "mysqldb"
+
 - name: Configure data processing script
   copy:
     src: ../templates/dataProcessing.py
